@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BioModule V3 — Biomechanical Criteria Prediction from 3D Pose</title>
+<style>
+/* ── Reset & base ──────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#07070f;--bg1:#0d0d1a;--bg2:#111827;--bg3:#1e293b;
+  --border:#1e293b;--txt:#e2e8f0;--sub:#94a3b8;--muted:#475569;
+  --acc:#38bdf8;--grn:#34d399;--prp:#a78bfa;--red:#f87171;--yel:#fbbf24;
+  --r:8px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg0);color:var(--txt);
+  font:14px/1.6 'Inter',system-ui,sans-serif;min-height:100vh}
+
+/* ── Nav ───────────────────────────────────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:100;
+  background:rgba(7,7,15,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:0;padding:0 28px}
+nav .logo{font-size:13px;font-weight:800;letter-spacing:-.3px;padding:13px 0;
+  background:linear-gradient(90deg,var(--acc),var(--grn));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
+nav a{padding:14px 14px;font-size:12px;font-weight:600;color:var(--sub);
+  text-decoration:none;letter-spacing:.2px;transition:.15s;border-bottom:2px solid transparent}
+nav a:hover{color:var(--txt)}
+nav a.active{color:var(--txt);border-bottom-color:var(--acc)}
+.nav-pill{background:var(--acc);color:white;border-radius:16px;
+  padding:5px 14px;font-size:11px;font-weight:700;text-decoration:none;
+  margin-left:10px;transition:.15s}
+.nav-pill:hover{opacity:.85}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+.hero{padding:72px 28px 56px;max-width:900px;margin:0 auto;text-align:center}
+.venue-badge{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);
+  border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;
+  color:var(--acc);letter-spacing:.4px;margin-bottom:22px}
+.hero h1{font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.15;
+  letter-spacing:-.8px;margin-bottom:14px}
+.hero h1 span{
+  background:linear-gradient(135deg,var(--acc) 0%,var(--grn) 50%,var(--prp) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .byline{font-size:14px;color:var(--sub);margin-bottom:26px}
+.hero .byline strong{color:var(--txt)}
+.hero-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;
+  padding:9px 20px;border-radius:var(--r);font-size:13px;font-weight:700;
+  text-decoration:none;transition:.15s;border:1px solid transparent}
+.btn-primary{background:var(--acc);color:white}
+.btn-primary:hover{opacity:.85}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--sub)}
+.btn-outline:hover{border-color:var(--sub);color:var(--txt)}
+
+/* ── Shared section wrapper ────────────────────────────────────────────────── */
+section{padding:56px 28px;max-width:900px;margin:0 auto}
+section.wide{max-width:1200px}
+.sec-label{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--acc);margin-bottom:10px}
+.sec-title{font-size:clamp(20px,2.5vw,28px);font-weight:800;letter-spacing:-.4px;
+  margin-bottom:16px;line-height:1.2}
+.divider{border:none;border-top:1px solid var(--border);margin:0}
+
+/* ── Abstract ──────────────────────────────────────────────────────────────── */
+.abstract-box{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);
+  padding:24px 28px;font-size:14px;color:var(--sub);line-height:1.75;
+  border-left:3px solid var(--acc)}
+.abstract-box strong{color:var(--txt)}
+
+/* ── Stats row ─────────────────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;
+  margin-top:36px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px;text-align:center}
+.stat-card .v{font-size:28px;font-weight:900;letter-spacing:-.5px}
+.stat-card .l{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.3px}
+
+/* ── Method grid ───────────────────────────────────────────────────────────── */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;
+  margin-top:24px}
+.method-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px}
+.method-card .icon{font-size:20px;margin-bottom:8px}
+.method-card h3{font-size:13px;font-weight:700;margin-bottom:6px;letter-spacing:.2px}
+.method-card p{font-size:12px;color:var(--sub);line-height:1.6}
+
+/* ── Pipeline figure ───────────────────────────────────────────────────────── */
+.pipeline{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px;margin-top:24px;text-align:center}
+.pipeline-boxes{display:flex;align-items:center;justify-content:center;
+  gap:0;flex-wrap:wrap;margin-bottom:12px}
+.pbox{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:10px 16px;font-size:12px;font-weight:700;line-height:1.3;min-width:120px;
+  text-align:center}
+.pbox .sub2{font-size:10px;color:var(--muted);font-weight:400;margin-top:2px}
+.parrow{font-size:18px;color:var(--muted);padding:0 8px;flex-shrink:0}
+.frozen-badge{display:inline-block;background:rgba(56,189,248,.12);
+  border:1px solid rgba(56,189,248,.3);border-radius:4px;
+  padding:1px 6px;font-size:10px;color:var(--acc);font-weight:700;margin-top:4px}
+.ft-badge{display:inline-block;background:rgba(52,211,153,.12);
+  border:1px solid rgba(52,211,153,.3);border-radius:4px;
+  padding:1px 6px;font-size:10px;color:var(--grn);font-weight:700;margin-top:4px}
+.pipeline-note{font-size:11px;color:var(--muted)}
+
+/* ── Demo section ──────────────────────────────────────────────────────────── */
+.demo-section{background:var(--bg1);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);padding:48px 0 0}
+.demo-inner{max-width:1200px;margin:0 auto;padding:0 28px}
+.demo-inner .sec-label{margin-bottom:10px}
+.demo-inner .sec-title{margin-bottom:8px}
+.demo-desc{font-size:13px;color:var(--sub);margin-bottom:20px;max-width:680px;line-height:1.7}
+.demo-note{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);
+  margin-bottom:16px;flex-wrap:wrap}
+.demo-note .tag{background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+  padding:2px 9px;font-size:10px;font-weight:700}
+
+.iframe-wrap{width:100%;overflow-x:auto;background:var(--bg0);
+  border-radius:var(--r) var(--r) 0 0;border:1px solid var(--border);
+  border-bottom:none}
+.iframe-wrap iframe{display:block;min-width:1100px;width:100%;height:530px;
+  border:none;background:var(--bg0)}
+
+/* ── Results table ─────────────────────────────────────────────────────────── */
+.results-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:20px}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border)}
+th{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--muted);text-align:left;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--sub)}
+td.model{color:var(--txt);font-weight:700}
+td.val{font-family:'JetBrains Mono','Fira Mono',monospace;color:var(--txt)}
+td.best{color:var(--grn);font-weight:800}
+tr:hover td{background:var(--bg2)}
+.model-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  margin-right:6px;vertical-align:middle}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+footer{background:var(--bg1);border-top:1px solid var(--border);
+  padding:28px;text-align:center;font-size:11px;color:var(--muted)}
+footer a{color:var(--sub);text-decoration:none}
+footer a:hover{color:var(--txt)}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="logo">BioModule V3</div>
+  <a href="#abstract" class="active">Abstract</a>
+  <a href="#method">Method</a>
+  <a href="#demo">Demo</a>
+  <a href="#results">Results</a>
+  <a href="demo/demo.html" class="nav-pill">&#9654; Live Demo</a>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="venue-badge">&#9679;&nbsp;WACV 2026 Submission</div>
+  <h1>
+    <span>BioModule V3:</span><br>
+    Biomechanical Criteria Prediction<br>from Frozen 3D Human Pose Estimators
+  </h1>
+  <div class="byline">
+    <strong>Ayda Eghbalian</strong> &nbsp;·&nbsp; Human Motion Analysis Lab
+  </div>
+  <div class="hero-links">
+    <a href="demo/demo.html" class="btn btn-primary">&#9654;&nbsp;Live Demo (D3DP FT)</a>
+    <a href="https://github.com/eghbalian-ayda/BioModule" class="btn btn-outline">⌥&nbsp;Code</a>
+    <a href="#demo" class="btn btn-outline">&#9776;&nbsp;Model Grid</a>
+    <a href="#results" class="btn btn-outline">&#8593;&nbsp;Results</a>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ── Abstract ─────────────────────────────────────────────────────────────── -->
+<section id="abstract">
+  <div class="sec-label">Abstract</div>
+  <div class="sec-title">Predicting 17 Biomechanical Criteria from 3D Skeleton</div>
+  <div class="abstract-box">
+    We present <strong>BioModule V3</strong>, a lightweight transformer that predicts
+    <strong>17 biomechanical criteria per frame</strong> — including ground reaction forces,
+    joint coordinates, torques, muscle activations, and neural excitations — directly
+    from a 27-frame sliding window of 3D skeletal pose.
+    The model is pre-trained on ground-truth (GT) pose inputs
+    (<strong>GT Frozen</strong>) and then fine-tuned on top of
+    seven state-of-the-art 3D pose estimators without updating their weights.
+    Evaluated on Human 3.6M+ Subject 9 (Walking), BioModule V3 achieves
+    low per-joint prediction error across all criteria while
+    generalising across diverse pose estimator backbones.
+    The per-joint architecture exposes spatially-resolved criterion timeseries,
+    enabling downstream biomechanical analysis at the level of individual body segments.
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="v" style="color:var(--acc)">3.8M</div>
+      <div class="l">Transformer Parameters</div>
+    </div>
+    <div class="stat-card">
+      <div class="v" style="color:var(--grn)">17</div>
+      <div class="l">Biomechanical Criteria</div>
+    </div>
+    <div class="stat-card">
+      <div class="v" style="color:var(--prp)">27</div>
+      <div class="l">Frame Context Window</div>
+    </div>
+    <div class="stat-card">
+      <div class="v" style="color:var(--yel)">7</div>
+      <div class="l">Fine-Tuned Backbones</div>
+    </div>
+    <div class="stat-card">
+      <div class="v" style="color:var(--red)">68</div>
+      <div class="l">Muscles / DOF Tracked</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- ── Method ────────────────────────────────────────────────────────────────── -->
+<section id="method">
+  <div class="sec-label">Method</div>
+  <div class="sec-title">Two-Stage Frozen Fine-Tuning</div>
+
+  <div class="pipeline">
+    <div class="pipeline-boxes">
+      <div class="pbox">
+        3D Pose Estimator
+        <div class="sub2">MHFormer / D3DP / etc.</div>
+        <div class="frozen-badge">FROZEN</div>
+      </div>
+      <div class="parrow">→</div>
+      <div class="pbox">
+        27-Frame Window
+        <div class="sub2">17 joints × 3D coords</div>
+      </div>
+      <div class="parrow">→</div>
+      <div class="pbox">
+        BioModule V3
+        <div class="sub2">Transformer Encoder</div>
+        <div class="ft-badge">FINE-TUNED</div>
+      </div>
+      <div class="parrow">→</div>
+      <div class="pbox">
+        17 Criteria / frame
+        <div class="sub2">per-joint + body-wide</div>
+      </div>
+    </div>
+    <div class="pipeline-note">
+      The pose estimator weights are never updated. Only BioModule V3 learns
+      to map estimated 3D poses to biomechanical outputs.
+    </div>
+  </div>
+
+  <div class="method-grid">
+    <div class="method-card">
+      <div class="icon">⚡</div>
+      <h3>Sliding Window Encoder</h3>
+      <p>A 4-layer transformer processes 27 consecutive frames of 17-joint 3D poses,
+         capturing temporal dynamics without recurrence.</p>
+    </div>
+    <div class="method-card">
+      <div class="icon">&#9881;</div>
+      <h3>Per-Joint Head</h3>
+      <p>Separate projection heads produce per-joint criterion timeseries
+         aligned to OpenSim DOF mappings, enabling spatially-resolved analysis.</p>
+    </div>
+    <div class="method-card">
+      <div class="icon">&#128200;</div>
+      <h3>Biomechanical Criteria</h3>
+      <p>Ground reaction forces, generalised coordinates, torques (active / passive / ideal),
+         joint power, muscle activation, neural excitation, and contact probabilities.</p>
+    </div>
+    <div class="method-card">
+      <div class="icon">&#128279;</div>
+      <h3>Backbone-Agnostic</h3>
+      <p>Fine-tuned independently on 7 frozen pose estimators.
+         BioModule V3 generalises across MHFormer, TCPFormer, PoseMamba, D3DP, and more.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- ── Demo grid ──────────────────────────────────────────────────────────────── -->
+<div class="demo-section" id="demo">
+  <div class="demo-inner">
+    <div class="sec-label">Live Demo</div>
+    <div class="sec-title">Right Knee Predictions — All Fine-Tuned Models</div>
+    <div class="demo-desc">
+      Each cell shows the walking video with the <strong>SKEL skeleton overlay</strong>.
+      The right knee joint glows with a heatmap colour proportional to the predicted
+      biomechanical criterion value at that instant.
+      The sparkline below each cell traces the full sequence with a live tracking dot — no GT baseline shown.
+    </div>
+    <div class="demo-note">
+      <span class="tag">Joint #2 — R Knee</span>
+      <span class="tag">5 criteria</span>
+      <span class="tag">7 fine-tuned models</span>
+      <span class="tag">auto-loop · no controls</span>
+      <span style="margin-left:auto">
+        <a href="demo/demo.html" class="btn btn-primary" style="font-size:11px;padding:6px 14px">
+          &#9654; Open full interactive dashboard
+        </a>
+      </span>
+    </div>
+  </div>
+
+  <div class="demo-inner" style="max-width:100%;padding:0 28px">
+    <div class="iframe-wrap">
+      <iframe src="demo/demo_grid.html"
+              title="BioModule V3 — Right Knee Prediction Grid"
+              loading="lazy"
+              allow="autoplay"></iframe>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" style="margin-top:0"/>
+
+<!-- ── Results ──────────────────────────────────────────────────────────────── -->
+<section id="results" class="wide">
+  <div class="sec-label">Results</div>
+  <div class="sec-title">Evaluation on H3.6M+ S9 Walking</div>
+  <p style="font-size:13px;color:var(--sub);margin-bottom:4px">
+    MAE per criterion, averaged across all evaluation frames.
+    Lower is better. Best per-column in <span style="color:var(--grn)">green</span>.
+  </p>
+
+  <div class="results-wrap">
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Seat GRF</th>
+          <th>GRF Right</th>
+          <th>GRF Left</th>
+          <th>Coord RMS</th>
+          <th>Speed RMS</th>
+          <th>Accel RMS</th>
+          <th>Act. Torque</th>
+          <th>Pass. Torque</th>
+          <th>Activation</th>
+          <th>Excitation</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody">
+        <tr><td colspan="11" style="color:var(--muted);text-align:center;padding:20px">
+          Loading results…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────────── -->
+<footer>
+  <strong style="color:var(--sub)">BioModule V3</strong> &nbsp;·&nbsp;
+  <a href="https://github.com/eghbalian-ayda/BioModule">GitHub</a> &nbsp;·&nbsp;
+  <a href="demo/demo.html">Live Demo</a> &nbsp;·&nbsp;
+  Human Motion Analysis Lab &nbsp;·&nbsp; 2026
+</footer>
+
+<script>
+// ── Nav highlight on scroll ──────────────────────────────────────────────────
+const sections = ['abstract','method','demo','results'];
+const navLinks = document.querySelectorAll('nav a[href^="#"]');
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navLinks.forEach(a=>a.classList.remove('active'));
+      const link=document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if(link)link.classList.add('active');
+    }
+  });
+},{threshold:0.3});
+sections.forEach(id=>{const el=document.getElementById(id);if(el)io.observe(el);});
+
+// ── Results table population ─────────────────────────────────────────────────
+const MODEL_COLORS = {
+  'GT Frozen':         '#94a3b8',
+  'MHFormer FT':       '#a78bfa',
+  'TCPFormer FT':      '#60a5fa',
+  'PoseMamba FT':      '#34d399',
+  'VideoPose3D FT':    '#fbbf24',
+  'MotionAGFormer FT': '#f87171',
+  'KTPFormer FT':      '#f472b6',
+  'D3DP FT':           '#38bdf8',
+};
+const COL_KEYS = [
+  'seat_reaction','grfy_right','grfy_left',
+  'coordinate_rms','speed_rms','acceleration_rms',
+  'active_torque_mean','passive_torque_mean',
+  'activation_mean','excitation_mean',
+];
+
+function mae(pred, gt) {
+  let s=0, n=0;
+  for (let i=0;i<pred.length;i++) {
+    if(pred[i]!=null&&gt[i]!=null&&isFinite(pred[i])&&isFinite(gt[i])){
+      s+=Math.abs(pred[i]-gt[i]); n++;
+    }
+  }
+  return n?s/n:NaN;
+}
+
+function buildResultsTable(DATA) {
+  const tbody = document.getElementById('resultsBody');
+  const models = Object.keys(DATA.models||{});
+  if (!models.length) { tbody.innerHTML='<tr><td colspan="11" style="color:var(--muted);text-align:center">No model data found.</td></tr>'; return; }
+  const gt = DATA.gt||{};
+
+  // Compute MAE per model × crit
+  const rows = models.map(m=>{
+    const mdata = DATA.models[m]||{};
+    return {
+      model: m,
+      vals: COL_KEYS.map(k=>{
+        const p=mdata[k], g=gt[k];
+        if(!p||!g)return NaN;
+        return mae(p,g);
+      })
+    };
+  });
+
+  // Find best (min) per column
+  const best = COL_KEYS.map((_,ci)=>{
+    const vals=rows.map(r=>r.vals[ci]).filter(v=>isFinite(v));
+    return vals.length?Math.min(...vals):Infinity;
+  });
+
+  tbody.innerHTML='';
+  rows.forEach(row=>{
+    const tr=document.createElement('tr');
+    const col=MODEL_COLORS[row.model]||'#94a3b8';
+    tr.innerHTML=`<td class="model"><span class="model-dot" style="background:${col}"></span>${row.model}</td>`;
+    row.vals.forEach((v,ci)=>{
+      const isBest=isFinite(v)&&Math.abs(v-best[ci])<1e-9;
+      tr.innerHTML+=`<td class="val${isBest?' best':''}">${isFinite(v)?v.toFixed(3):'—'}</td>`;
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// Use inline data if available (demo loaded data_bone.js via iframe)
+// Try to fetch the combined results JSON
+fetch('results/eval_combined.json')
+  .then(r=>r.json())
+  .then(j=>{
+    if(j&&j.gt&&j.models) buildResultsTable(j);
+    else {
+      // Maybe it has flat structure; wrap into expected format
+      document.getElementById('resultsBody').innerHTML=
+        '<tr><td colspan="11" style="color:var(--muted);text-align:center">Results JSON format mismatch — open browser console for details.</td></tr>';
+      console.log('results JSON:', j);
+    }
+  })
+  .catch(()=>{
+    document.getElementById('resultsBody').innerHTML=
+      '<tr><td colspan="11" style="color:var(--muted);text-align:center">Results not available in static preview. Push to GitHub Pages to load.</td></tr>';
+  });
+</script>
+</body>
+</html>

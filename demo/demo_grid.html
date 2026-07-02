@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>BioModule V3 — Right Knee · All Models</title>
+<script src="./data_bone.js"></script>
+<script src="./skel_proj.js"></script>
+<script src="./skel_skull_extra.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#07070f;--bg1:#0d0d1a;--bg2:#111827;--bg3:#1e293b;
+  --border:#1e293b;--txt:#e2e8f0;--sub:#64748b;--muted:#475569;
+}
+html,body{background:var(--bg0);color:var(--txt);
+  font:11.5px/1.4 'Inter',system-ui,sans-serif;overflow-x:auto}
+
+.top-bar{display:flex;align-items:center;gap:10px;
+  padding:9px 16px;background:var(--bg1);border-bottom:1px solid var(--border)}
+.top-bar h1{font-size:13px;font-weight:800;
+  background:linear-gradient(90deg,#60a5fa,#34d399,#f472b6,#fbbf24);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.top-bar .sub{font-size:10px;color:var(--muted)}
+.top-bar .knee{margin-left:auto;background:rgba(248,113,113,.12);
+  border:1px solid rgba(248,113,113,.35);border-radius:16px;
+  padding:1px 9px;font-size:10px;color:#fca5a5;font-weight:700;white-space:nowrap}
+
+.timer-bar{display:flex;align-items:center;gap:8px;
+  padding:5px 16px;background:var(--bg1);border-bottom:1px solid var(--border);
+  font-size:10px;color:var(--sub)}
+.timer-track{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.timer-fill{height:100%;width:0%;border-radius:2px;
+  background:linear-gradient(90deg,#60a5fa,#34d399,#f472b6)}
+.timer-txt{min-width:110px;text-align:right}
+
+.grid-outer{padding:12px 16px 20px}
+.grid{display:grid;gap:4px}
+
+/* shared layout tokens used by JS */
+:root{
+  --lw:92px;    /* label column width */
+  --cw:140px;   /* cell canvas width */
+}
+
+.corner,.model-hdr{height:34px;display:flex;align-items:center;
+  justify-content:center;border-radius:5px;
+  background:var(--bg2);border:1px solid var(--border)}
+.corner{background:transparent;border-color:transparent}
+.model-hdr{flex-direction:column;gap:1px;padding:3px}
+.model-hdr .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.model-hdr .name{font-size:9px;font-weight:700;letter-spacing:.2px;text-align:center;line-height:1.2}
+
+.metric-lbl{display:flex;flex-direction:column;justify-content:center;
+  padding:0 8px;font-size:9px;font-weight:700;color:var(--sub);
+  letter-spacing:.4px;text-transform:uppercase;line-height:1.4}
+.metric-lbl .unit{font-size:8px;font-weight:400;color:#334155;text-transform:none;letter-spacing:0}
+
+.cell{border-radius:5px;overflow:hidden;line-height:0;
+  border:1px solid var(--border);background:var(--bg2)}
+.cell canvas{display:block}
+</style>
+</head>
+<body>
+
+<!-- Hidden shared video — drives all 35 cells -->
+<video id="vid" src="./video_walk.mp4" autoplay muted playsinline
+  style="position:fixed;left:-9999px;width:1px;height:1px;pointer-events:none"></video>
+
+<div class="top-bar">
+  <div>
+    <h1>BioModule V3 — Right Knee Predictions · All Fine-Tuned Models</h1>
+    <div class="sub">5 biomechanical criteria &nbsp;·&nbsp; 7 models &nbsp;·&nbsp; no GT baseline &nbsp;·&nbsp; S9 Walking</div>
+  </div>
+  <div class="knee">● Joint #2 — R Knee</div>
+</div>
+<div class="timer-bar">
+  <div class="timer-track"><div class="timer-fill" id="fill"></div></div>
+  <div class="timer-txt" id="timerTxt">t = 0.00 s</div>
+</div>
+
+<div class="grid-outer">
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const MODELS = [
+  'MHFormer FT','TCPFormer FT','PoseMamba FT',
+  'VideoPose3D FT','MotionAGFormer FT','KTPFormer FT','D3DP FT',
+];
+const MCOL = {
+  'MHFormer FT':       '#a78bfa',
+  'TCPFormer FT':      '#60a5fa',
+  'PoseMamba FT':      '#34d399',
+  'VideoPose3D FT':    '#fbbf24',
+  'MotionAGFormer FT': '#f87171',
+  'KTPFormer FT':      '#f472b6',
+  'D3DP FT':           '#38bdf8',
+};
+const METRICS = [
+  {key:'speed_rms',           label:'Speed RMS',      unit:'m/s'},
+  {key:'active_torque_mean',  label:'Active Torque',  unit:'Nm'},
+  {key:'passive_torque_mean', label:'Passive Torque', unit:'Nm'},
+  {key:'activation_mean',     label:'Muscle Activ.',  unit:''},
+  {key:'excitation_mean',     label:'Neural Excit.',  unit:''},
+];
+const SKEL_EDGES = [
+  [0,1],[1,2],[2,3],[0,4],[4,5],[5,6],
+  [0,7],[7,8],[8,9],[9,10],
+  [8,11],[11,12],[12,13],[8,14],[14,15],[15,16],
+];
+const R_KNEE = 2;
+
+// ─── Geometry ─────────────────────────────────────────────────────────────────
+const FPS    = DATA.meta.fps;
+const N      = DATA.meta.n_frames;
+const MAX_S  = 8;              // seconds to display
+const AN     = Math.min(N, Math.floor(MAX_S * FPS));
+
+// Pre-flatten projection matrices
+const PROJ_F = PROJ.map(p => new Float32Array(p.flat ? p.flat() : [].concat(...p)));
+
+// Pre-project 2D skeleton positions for all AN frames
+const PT2D = [];
+for (let fi = 0; fi < AN; fi++) {
+  const P = PROJ_F[fi];
+  PT2D.push(DATA.kp3[fi].map(([x,y,z]) => {
+    const wx=x, wy=z, wz=y;
+    const w = P[8]*wx + P[9]*wy + P[10]*wz + P[11];
+    return [(P[0]*wx+P[1]*wy+P[2]*wz+P[3])/w,
+            (P[4]*wx+P[5]*wy+P[6]*wz+P[7])/w];
+  }));
+}
+
+// Bounding box for stable skeleton framing
+let bx0=1e9,bx1=-1e9,by0=1e9,by1=-1e9;
+for (let fi=0;fi<AN;fi++) for (const [x,y] of PT2D[fi]) {
+  if(x<bx0)bx0=x; if(x>bx1)bx1=x;
+  if(y<by0)by0=y; if(y>by1)by1=y;
+}
+const bxR = bx1-bx0||1, byR = by1-by0||1;
+
+// Cell canvas dimensions
+const CW   = 140;
+const VH   = 79;   // video / figure area (≈16:9)
+const SPK_H = 47;
+const GAP   = 3;
+const CH    = VH + GAP + SPK_H;
+const FP    = 5;   // figure padding (inside video area)
+const SP    = 4;   // sparkline padding
+
+function figPt(pt) {
+  return [
+    FP + (pt[0]-bx0)/bxR * (CW - 2*FP),
+    FP + (pt[1]-by0)/byR * (VH - 2*FP),
+  ];
+}
+
+// ─── Timeseries ───────────────────────────────────────────────────────────────
+const SERIES = {}, RANGES = {};
+for (const m of MODELS) {
+  for (const mt of METRICS) {
+    const k = m+'|'+mt.key;
+    let raw = DATA.models_jval?.[m]?.[mt.key]?.[R_KNEE];
+    if (!Array.isArray(raw)) raw = DATA.models?.[m]?.[mt.key];
+    if (!raw) continue;
+    const arr = new Float32Array(AN);
+    let mn=1e9, mx=-1e9;
+    for (let i=0;i<AN;i++) {
+      const v = raw[i] ?? NaN;
+      arr[i] = v;
+      if (isFinite(v)) { if(v<mn)mn=v; if(v>mx)mx=v; }
+    }
+    SERIES[k] = arr;
+    RANGES[k]  = {min:mn===1e9?0:mn, max:mx===-1e9?1:mx};
+  }
+}
+
+// ─── Heat colour: cool teal → white-hot red ────────────────────────────────
+function heat(t) {
+  t = Math.max(0, Math.min(1, t));
+  const r = Math.round(40  + 215*t);
+  const g = Math.round(140 * (1-t*0.9));
+  const b = Math.round(120 * (1-t));
+  return `rgb(${r},${Math.max(0,g)},${Math.max(0,b)})`;
+}
+
+// ─── Build DOM ─────────────────────────────────────────────────────────────
+const gridEl = document.getElementById('grid');
+gridEl.style.gridTemplateColumns = `92px repeat(${MODELS.length},${CW}px)`;
+
+// Header row
+const corner = document.createElement('div');
+corner.className = 'corner';
+gridEl.appendChild(corner);
+for (const m of MODELS) {
+  const h = document.createElement('div');
+  h.className = 'model-hdr';
+  const dot = document.createElement('div');
+  dot.className = 'dot'; dot.style.background = MCOL[m];
+  const nm = document.createElement('div');
+  nm.className = 'name'; nm.textContent = m; nm.style.color = MCOL[m];
+  h.appendChild(dot); h.appendChild(nm);
+  gridEl.appendChild(h);
+}
+
+// Data rows
+const CVASES = {};
+for (const mt of METRICS) {
+  CVASES[mt.key] = {};
+
+  const lbl = document.createElement('div');
+  lbl.className = 'metric-lbl';
+  lbl.innerHTML = `${mt.label}${mt.unit?`<span class="unit">${mt.unit}</span>`:''}`;
+  gridEl.appendChild(lbl);
+
+  for (const m of MODELS) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cell';
+    const cv = document.createElement('canvas');
+    cv.width = CW; cv.height = CH;
+    wrap.appendChild(cv);
+    gridEl.appendChild(wrap);
+    CVASES[mt.key][m] = cv;
+  }
+}
+
+// ─── Pre-bake sparkline backgrounds ─────────────────────────────────────────
+const SPK_BG = {};
+(function bakeSparklines(){
+  const tmp = document.createElement('canvas');
+  tmp.width = CW; tmp.height = SPK_H;
+  const tc = tmp.getContext('2d');
+  for (const mt of METRICS) {
+    for (const m of MODELS) {
+      const k = m+'|'+mt.key;
+      tc.clearRect(0,0,CW,SPK_H);
+      tc.fillStyle = '#060c1a';
+      tc.fillRect(0,0,CW,SPK_H);
+
+      const arr=SERIES[k], rng=RANGES[k];
+      if (arr && rng) {
+        const sW=CW-2*SP, sH=SPK_H-2*SP;
+        const range=rng.max-rng.min||1e-9;
+        const col=MCOL[m];
+
+        // Area under curve
+        tc.beginPath();
+        let started=false, lastX=SP;
+        for (let i=0;i<AN;i++) {
+          const v=arr[i]; if(!isFinite(v)){started=false;continue;}
+          const x=SP+(i/(AN-1))*sW;
+          const y=SP+sH-((v-rng.min)/range)*sH;
+          if(!started){tc.moveTo(x,SP+sH);tc.lineTo(x,y);started=true;}else tc.lineTo(x,y);
+          lastX=x;
+        }
+        if(started){tc.lineTo(lastX,SP+sH);tc.closePath();
+          tc.fillStyle=col+'26';tc.fill();}
+
+        // Line
+        tc.strokeStyle=col; tc.lineWidth=1.5;
+        tc.beginPath(); started=false;
+        for (let i=0;i<AN;i++) {
+          const v=arr[i]; if(!isFinite(v)){started=false;continue;}
+          const x=SP+(i/(AN-1))*sW;
+          const y=SP+sH-((v-rng.min)/range)*sH;
+          if(!started){tc.moveTo(x,y);started=true;}else tc.lineTo(x,y);
+        }
+        tc.stroke();
+      }
+      SPK_BG[k] = tc.getImageData(0,0,CW,SPK_H);
+    }
+  }
+})();
+
+// ─── Shared offscreen: video frame + neutral skeleton ────────────────────────
+const OFF = document.createElement('canvas');
+OFF.width = CW; OFF.height = VH;
+const OFC = OFF.getContext('2d');
+
+function drawNeutralSkel(ctx, kps) {
+  // Edges in dark teal
+  ctx.save();
+  ctx.strokeStyle='rgba(30,130,160,0.55)'; ctx.lineWidth=0.9;
+  for(const[a,b]of SKEL_EDGES){
+    ctx.beginPath();ctx.moveTo(kps[a][0],kps[a][1]);ctx.lineTo(kps[b][0],kps[b][1]);ctx.stroke();
+  }
+  // Joints (muted)
+  ctx.fillStyle='rgba(56,180,210,0.45)';
+  for(let j=0;j<17;j++){
+    if(j===R_KNEE)continue;
+    ctx.beginPath();ctx.arc(kps[j][0],kps[j][1],2,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ─── Animation ───────────────────────────────────────────────────────────────
+const vid      = document.getElementById('vid');
+const fillEl   = document.getElementById('fill');
+const timerEl  = document.getElementById('timerTxt');
+let lastFi     = -1;
+
+function loop() {
+  requestAnimationFrame(loop);
+
+  // Clamp to first MAX_S seconds, then loop
+  if (vid.currentTime >= MAX_S) { try{vid.currentTime=0;}catch(_){} }
+  if (vid.readyState < 2) return;
+
+  const fi = Math.min(AN-1, Math.max(0, Math.round(vid.currentTime * FPS)));
+  if (fi === lastFi) return;
+  lastFi = fi;
+
+  // ── Shared offscreen: video frame + neutral skeleton ──
+  OFC.drawImage(vid, 0, 0, CW, VH);
+  const kps = PT2D[fi].map(figPt);
+  drawNeutralSkel(OFC, kps);
+
+  // ── Per-cell rendering ──
+  for (const mt of METRICS) {
+    for (const m of MODELS) {
+      const cv = CVASES[mt.key][m];
+      const ctx = cv.getContext('2d');
+
+      // Video + neutral skeleton
+      ctx.drawImage(OFF, 0, 0);
+
+      // Right knee heatmap dot + glow
+      const k = m+'|'+mt.key;
+      const arr=SERIES[k], rng=RANGES[k];
+      if (arr && rng && isFinite(arr[fi])) {
+        const t=(rng.max-rng.min<1e-9)?0.5:(arr[fi]-rng.min)/(rng.max-rng.min);
+        const col=heat(t);
+        const [kx,ky]=kps[R_KNEE];
+        // Glow ring
+        const grd=ctx.createRadialGradient(kx,ky,2,kx,ky,11);
+        grd.addColorStop(0,col+'cc');grd.addColorStop(1,col+'00');
+        ctx.fillStyle=grd;
+        ctx.beginPath();ctx.arc(kx,ky,11,0,Math.PI*2);ctx.fill();
+        // Core dot
+        ctx.fillStyle=col;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.arc(kx,ky,4.5,0,Math.PI*2);ctx.fill();ctx.stroke();
+      }
+
+      // Sparkline background (pre-baked)
+      const sy = VH+GAP;
+      const bg=SPK_BG[k];
+      if(bg) ctx.putImageData(bg,0,sy);
+
+      // Animated dot on sparkline
+      if(arr&&rng&&isFinite(arr[fi])){
+        const sW=CW-2*SP, sH=SPK_H-2*SP;
+        const range=rng.max-rng.min||1e-9;
+        const cx=SP+(fi/(AN-1))*sW;
+        const cy=sy+SP+sH-((arr[fi]-rng.min)/range)*sH;
+        // Cursor line
+        ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cx,sy+SP);ctx.lineTo(cx,sy+SP+sH);ctx.stroke();
+        // Dot
+        ctx.fillStyle='#fff';ctx.strokeStyle=MCOL[m];ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(cx,cy,3.2,0,Math.PI*2);ctx.fill();ctx.stroke();
+      }
+    }
+  }
+
+  // Timer bar
+  const pct=(fi/(AN-1)*100).toFixed(0);
+  fillEl.style.width=pct+'%';
+  timerEl.textContent=`t = ${(fi/FPS).toFixed(2)} s  ·  frame ${fi+1}/${AN}`;
+}
+
+vid.addEventListener('canplay', () => { vid.play().catch(()=>{}); });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>BioModule V3 — D3DP FT</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="./data_bone.js"></script>
+<script src="./skel_proj.js"></script>
+<script src="./skel_skull_extra.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#07070f;--bg1:#0d0d1a;--bg2:#111827;--bg3:#1e293b;
+  --border:#1e293b;--muted:#475569;--sub:#94a3b8;--txt:#e2e8f0;
+  --accent:#38bdf8;--accent2:#38bdf8;--cyan:#22d3ee;--gold:#fbbf24;
+}
+html,body{height:100%;background:var(--bg0);color:var(--txt);
+  font:13px/1.5 'Inter',system-ui,sans-serif;overflow:hidden}
+
+header{display:flex;align-items:center;gap:14px;
+  padding:9px 18px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:17px;font-weight:800;letter-spacing:-.4px;
+  background:linear-gradient(90deg,#38bdf8,#38bdf8cc,#f472b6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .sub{font-size:11px;color:var(--muted)}
+header .badges{margin-left:auto;display:flex;gap:6px}
+header .badge{background:var(--bg3);border:1px solid var(--border);border-radius:16px;
+  padding:2px 9px;font-size:11px;color:var(--sub)}
+header .badge.hot{background:rgba(234,88,12,.15);border-color:rgba(234,88,12,.4);color:#fb923c}
+header .badge.model{background:rgba(0,0,0,.3);border-color:#38bdf855;color:#38bdf8;font-weight:700}
+
+.layout{display:flex;height:calc(100vh - 39px - 72px);overflow:hidden}
+
+.vpanel{width:40%;min-width:320px;background:var(--bg1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px;padding:12px;overflow:hidden;flex-shrink:0}
+
+.video-wrap{position:relative;width:100%;flex-shrink:0}
+.video-wrap video{display:block;width:100%;height:auto;
+  border-radius:7px;background:#000;border:1px solid var(--border);cursor:pointer}
+.video-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;
+  border-radius:7px;pointer-events:all;cursor:default}
+
+.colorbar-wrap{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:7px 10px}
+.colorbar-header{display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:5px}
+.colorbar-crit{font-size:11px;font-weight:700;color:var(--txt);letter-spacing:.3px}
+.colorbar-note{font-size:10px;color:var(--muted);font-style:italic}
+.colorbar-bar{height:10px;border-radius:5px;border:1px solid rgba(255,255,255,.08);
+  margin-bottom:4px}
+.colorbar-ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);
+  font-family:'JetBrains Mono','Fira Code',monospace}
+
+.vcontrols{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.play-btn{background:var(--accent);border:none;border-radius:6px;
+  padding:5px 13px;color:white;font-weight:700;cursor:pointer;font-size:12px}
+.play-btn:hover{opacity:.85}
+.vcontrols select{flex:1;background:var(--bg3);color:var(--txt);
+  border:1px solid var(--border);border-radius:6px;
+  padding:5px 8px;font-size:12px;cursor:pointer}
+
+.stat-row{display:flex;gap:7px;flex-shrink:0}
+.stat{flex:1;background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:6px 8px;text-align:center}
+.stat .v{font-size:16px;font-weight:800;color:var(--cyan)}
+.stat .l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+.stat.live .v{color:#38bdf8}
+
+.gpanel{flex:1;display:flex;flex-direction:column;padding:12px;gap:7px;overflow:hidden;min-width:0}
+
+.group-tabs{display:flex;gap:3px;flex-shrink:0}
+.gtab{padding:5px 14px;border-radius:7px 7px 0 0;border:1px solid transparent;
+  border-bottom:none;font-size:12px;font-weight:700;cursor:pointer;
+  color:var(--muted);background:var(--bg1);transition:.12s;letter-spacing:.3px}
+.gtab:hover{color:var(--txt)}
+.gtab.active{background:var(--bg2);color:var(--txt);border-color:var(--border)}
+
+.crit-row{display:flex;flex-wrap:wrap;gap:4px;
+  padding:7px 9px;background:var(--bg2);border:1px solid var(--border);
+  border-top:none;border-radius:0 6px 0 0;flex-shrink:0}
+.ctab{padding:3px 10px;border-radius:16px;font-size:11px;cursor:pointer;
+  color:var(--sub);background:var(--bg3);border:1px solid var(--border);
+  transition:.12s;white-space:nowrap}
+.ctab:hover{color:var(--txt)}
+.ctab.active{background:#38bdf8;color:white;border-color:#38bdf8}
+
+#chart{flex:1;min-height:0;border:1px solid var(--border);border-radius:0 0 7px 7px;overflow:hidden}
+.chart-meta{font-size:11px;color:var(--muted);padding:2px 4px;flex-shrink:0}
+
+.scrubber-wrap{flex-shrink:0;padding:10px 18px 12px;
+  background:var(--bg1);border-top:1px solid var(--border)}
+.scrubber-track{position:relative;height:7px;background:var(--bg3);
+  border-radius:4px;cursor:pointer;margin:7px 0 5px;border:1px solid var(--border)}
+.scrubber-fill{height:100%;
+  background:linear-gradient(90deg,#38bdf8,#38bdf899,#ec4899);
+  border-radius:4px;pointer-events:none}
+.scrubber-knob{position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:20px;height:20px;border-radius:50%;background:white;
+  box-shadow:0 0 0 3px #38bdf8,0 0 10px #38bdf899;
+  cursor:grab;border:2px solid #38bdf8}
+.scrubber-knob:hover{box-shadow:0 0 0 3px #38bdf8,0 0 18px #38bdf8}
+.scrubber-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.scrubber-info{display:flex;justify-content:center;gap:24px;
+  font-size:11px;color:var(--sub);margin-top:3px}
+.scrubber-info b{color:var(--cyan)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>BioModule V3 — SKEL on Video — D3DP FT</h1>
+    <div class="sub">S9 / Walking &nbsp;·&nbsp; 250 frames (5 s) &nbsp;·&nbsp; SKEL anatomical skeleton &nbsp;·&nbsp; Bone colours = <b style='color:#38bdf8'>D3DP FT</b> predicted quantities</div>
+  </div>
+  <div class="badges">
+    <span class="badge">50 fps</span>
+    <span class="badge">S9 / Walking</span>
+    <span class="badge model">D3DP FT</span>
+    <span class="badge">17 criteria</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <div class="vpanel">
+    <div class="video-wrap" id="vwrap">
+      <video id="vid" src="./video_walk.mp4" muted playsinline></video>
+      <canvas id="kpCanvas"></canvas>
+    </div>
+
+    <div class="colorbar-wrap">
+      <div class="colorbar-header">
+        <span class="colorbar-crit" id="colorbarCrit">—</span>
+        <span class="colorbar-note" id="colorbarNote">per-bone value</span>
+      </div>
+      <div class="colorbar-bar" id="colorbarBar"></div>
+      <div class="colorbar-ticks">
+        <span id="colorbarMin">—</span>
+        <span id="colorbarMid">—</span>
+        <span id="colorbarMax">—</span>
+      </div>
+    </div>
+
+    <div class="vcontrols">
+      <button class="play-btn" id="playBtn">&#9654; Play</button>
+      <select id="modelSel">
+        <option value="">— GT labels only —</option>
+      </select>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="statFrame">—</div><div class="l">Frame</div></div>
+      <div class="stat"><div class="v" id="statTime">—</div><div class="l">Time</div></div>
+      <div class="stat live"><div class="v" id="statVal">—</div><div class="l">Predicted</div></div>
+    </div>
+  </div>
+
+  <div class="gpanel">
+    <div class="group-tabs" id="groupTabs"></div>
+    <div class="crit-row"   id="critTabs"></div>
+    <div id="chart"></div>
+    <div class="chart-meta" id="chartMeta"></div>
+  </div>
+</div>
+
+<div class="scrubber-wrap">
+  <div class="scrubber-track" id="track">
+    <div class="scrubber-fill" id="fill" style="width:0%"></div>
+    <div class="scrubber-knob" id="knob" style="left:0%"></div>
+  </div>
+  <div class="scrubber-labels">
+    <span id="lblStart"></span>
+    <span style="color:var(--sub)">drag knob &nbsp;·&nbsp; click track</span>
+    <span id="lblEnd"></span>
+  </div>
+  <div class="scrubber-info">
+    Frame&nbsp;<b id="infoFrame">—</b>
+    &nbsp;|&nbsp; Time&nbsp;<b id="infoTime">—</b>
+    &nbsp;|&nbsp; <b id="infoPlay">Paused</b>
+  </div>
+</div>
+
+<script>
+// Replace low-res head blob with high-res skull mesh
+SKEL_GEO.head = SKULL_GEO;
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const FPS     = DATA.meta.fps;
+const F_START = DATA.meta.frame_start;
+const F_END   = DATA.meta.frame_end;
+const N       = DATA.meta.n_frames;
+
+const BONE_CONFIG = {
+  pelvis:      {ps:0,  ds:11, ph:0,  dh:7,  hj:0 },
+  femur_r:     {ps:1,  ds:2,  ph:1,  dh:2,  hj:1 },
+  tibia_r:     {ps:2,  ds:3,  ph:2,  dh:3,  hj:2 },
+  talus_r:     {ps:3,  ds:4,  ph:3,  dh:3,  hj:3 },
+  calcn_r:     {ps:4,  ds:5,  ph:3,  dh:3,  hj:3 },
+  toes_r:      {ps:5,  ds:5,  ph:3,  dh:3,  hj:3 },
+  femur_l:     {ps:6,  ds:7,  ph:4,  dh:5,  hj:4 },
+  tibia_l:     {ps:7,  ds:8,  ph:5,  dh:6,  hj:5 },
+  talus_l:     {ps:8,  ds:9,  ph:6,  dh:6,  hj:6 },
+  calcn_l:     {ps:9,  ds:10, ph:6,  dh:6,  hj:6 },
+  toes_l:      {ps:10, ds:10, ph:6,  dh:6,  hj:6 },
+  lumbar_body: {ps:0,  ds:11, ph:0,  dh:7,  hj:7 },
+  thorax:      {ps:11, ds:12, ph:7,  dh:8,  hj:7 },
+  head:        {ps:12, ds:13, ph:8,  dh:10, hj:8 },
+  scapula_r:   {ps:12, ds:14, ph:8,  dh:14, hj:14},
+  humerus_r:   {ps:15, ds:16, ph:14, dh:15, hj:14},
+  ulna_r:      {ps:16, ds:18, ph:15, dh:16, hj:15},
+  radius_r:    {ps:17, ds:18, ph:15, dh:16, hj:15},
+  hand_r:      {ps:18, ds:18, ph:16, dh:16, hj:16},
+  scapula_l:   {ps:12, ds:19, ph:8,  dh:11, hj:11},
+  humerus_l:   {ps:20, ds:21, ph:11, dh:12, hj:11},
+  ulna_l:      {ps:21, ds:23, ph:12, dh:13, hj:12},
+  radius_l:    {ps:22, ds:23, ph:12, dh:13, hj:12},
+  hand_l:      {ps:23, ds:23, ph:13, dh:13, hj:13},
+};
+
+const CRIT_META = {
+  seat_reaction:       {label:'Seat Reaction Force',   unit:'N',    dec:1, desc:'Vertical seat reaction (RSRFy)'},
+  grfy_right:          {label:'GRF Right (Fy)',        unit:'N',    dec:1, desc:'Vertical ground reaction — right foot'},
+  grfy_left:           {label:'GRF Left (Fy)',         unit:'N',    dec:1, desc:'Vertical ground reaction — left foot'},
+  coordinate_rms:      {label:'Coordinate RMS',        unit:'m',    dec:4, desc:'RMS of generalised coordinates (40 DOF)'},
+  speed_rms:           {label:'Speed RMS',             unit:'m/s',  dec:4, desc:'RMS of joint speeds (40 DOF)'},
+  acceleration_rms:    {label:'Acceleration RMS',      unit:'m/s²', dec:3, desc:'RMS of joint accelerations (40 DOF)'},
+  active_torque_mean:  {label:'Active Torque',         unit:'Nm',   dec:2, desc:'Active muscle torque (34 DOF)'},
+  passive_torque_mean: {label:'Passive Torque',        unit:'Nm',   dec:2, desc:'Passive joint torque (34 DOF)'},
+  ideal_torque_mean:   {label:'Ideal Torque',          unit:'Nm',   dec:2, desc:'Ideal joint torque (34 DOF)'},
+  power_mean:          {label:'Joint Power',           unit:'W',    dec:2, desc:'Instantaneous joint power (34 DOF)'},
+  activation_mean:     {label:'Muscle Activation',     unit:'',     dec:4, desc:'Mean muscle activation (68 muscles)'},
+  excitation_mean:     {label:'Neural Excitation',     unit:'',     dec:4, desc:'Mean neural excitation (68 muscles)'},
+  norm_torque_mean:    {label:'Normalised Torque',     unit:'',     dec:4, desc:'Normalised active torque (68 DOF)'},
+  angle_scaling_mean:  {label:'Angle Scaling',         unit:'',     dec:4, desc:'Force-length scaling function (68 DOF)'},
+  vel_scaling_mean:    {label:'Velocity Scaling',      unit:'',     dec:4, desc:'Force-velocity scaling function (68 DOF)'},
+  max_torque_mean:     {label:'Max Isometric Torque',  unit:'Nm',   dec:2, desc:'Maximum isometric torque (68 DOF)'},
+  touch_right:         {label:'Contact — Right Foot',  unit:'',     dec:2, desc:'Right-foot contact probability'},
+  touch_left:          {label:'Contact — Left Foot',   unit:'',     dec:2, desc:'Left-foot contact probability'},
+};
+
+const GROUPS = {
+  Kinematic:     ['coordinate_rms','speed_rms','acceleration_rms'],
+  Kinetic:       ['seat_reaction','grfy_right','grfy_left','active_torque_mean','passive_torque_mean','ideal_torque_mean','power_mean'],
+  Neuromuscular: ['activation_mean','excitation_mean','norm_torque_mean','angle_scaling_mean','vel_scaling_mean','max_torque_mean'],
+  Contact:       ['touch_right','touch_left'],
+};
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let currentFrame = F_START + Math.floor(N / 2);
+let currentGroup = 'Kinetic';
+let currentCrit  = 'seat_reaction';
+let currentModel = "D3DP FT";
+let dragging     = false;
+let rafPending   = false;
+let chartReady   = false;
+let critRange    = { min: 0, max: 1 };
+
+// ── Quaternion helpers ─────────────────────────────────────────────────────────
+function qFromUnitVecs(ax, ay, az, bx, by, bz) {
+  const dot = ax*bx + ay*by + az*bz;
+  if (dot > 0.9999) return [0,0,0,1];
+  if (dot < -0.9999) {
+    let px=1,py=0,pz=0;
+    if (Math.abs(ax) > 0.9) { px=0; py=1; }
+    let cx = ay*pz - az*py, cy = az*px - ax*pz, cz = ax*py - ay*px;
+    const cl = Math.sqrt(cx*cx+cy*cy+cz*cz);
+    cx/=cl; cy/=cl; cz/=cl;
+    return [cx, cy, cz, 0];
+  }
+  const cx = ay*bz - az*by, cy = az*bx - ax*bz, cz = ax*by - ay*bx;
+  return [cx, cy, cz, 1+dot];
+}
+function qNorm(q) {
+  const l = Math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);
+  return [q[0]/l, q[1]/l, q[2]/l, q[3]/l];
+}
+function qRot(q, vx, vy, vz) {
+  const [qx,qy,qz,qw] = q;
+  const tx = 2*(qy*vz - qz*vy);
+  const ty = 2*(qz*vx - qx*vz);
+  const tz = 2*(qx*vy - qy*vx);
+  return [
+    vx + qw*tx + qy*tz - qz*ty,
+    vy + qw*ty + qz*tx - qx*tz,
+    vz + qw*tz + qx*ty - qy*tx,
+  ];
+}
+
+// ── kp3 accessor ───────────────────────────────────────────────────────────────
+function kp3tj(fi, j) {
+  const p = DATA.kp3[fi][j];
+  return [p[0], p[2], p[1]];
+}
+
+// ── Heatmap ────────────────────────────────────────────────────────────────────
+function heatmapColor(t) {
+  t = Math.max(0, Math.min(1, t));
+  const g = Math.round(255*(1-t));
+  return `rgb(255,${g},${g})`;
+}
+function buildColorbarGradient() {
+  const parts = [];
+  for (let i = 0; i <= 12; i++) {
+    const t = i/12;
+    parts.push(`${heatmapColor(t)} ${(t*100).toFixed(0)}%`);
+  }
+  return `linear-gradient(to right,${parts.join(',')})`;
+}
+
+function getJvalSrc() {
+  if (currentModel && DATA.models_jval?.[currentModel])
+    return DATA.models_jval[currentModel];
+  return DATA.gt_jval || {};
+}
+function getScalarSrc() {
+  if (currentModel && DATA.models?.[currentModel])
+    return DATA.models[currentModel];
+  return DATA.gt || {};
+}
+
+function computeCritRange() {
+  const jvSrc = getJvalSrc(), scSrc = getScalarSrc();
+  const series = jvSrc[currentCrit];
+  const allVals = [];
+  if (series) {
+    for (let j = 0; j < 17; j++) {
+      const arr = series[j];
+      if (arr) for (const v of arr) if (v != null && isFinite(v)) allVals.push(v);
+    }
+  }
+  if (allVals.length === 0) {
+    const sc = scSrc[currentCrit];
+    if (sc) for (const v of sc) if (v != null && isFinite(v)) allVals.push(v);
+  }
+  if (!allVals.length) { critRange = {min:0,max:1}; return; }
+  allVals.sort((a,b)=>a-b);
+  critRange = {
+    min: allVals[Math.max(0,Math.floor(allVals.length*0.05))],
+    max: allVals[Math.min(allVals.length-1,Math.floor(allVals.length*0.95))],
+  };
+}
+
+function normVal(v) {
+  const span = critRange.max - critRange.min;
+  if (span < 1e-9) return 0.5;
+  return Math.max(0, Math.min(1, (v - critRange.min)/span));
+}
+
+function getBoneHeatColor(hj, fi) {
+  const jvSrc = getJvalSrc(), scSrc = getScalarSrc();
+  const series = jvSrc[currentCrit];
+  let v = null;
+  if (series?.[hj]) v = series[hj][fi] ?? null;
+  if (v == null) {
+    const sc = scSrc[currentCrit];
+    v = sc?.[fi] ?? critRange.min;
+  }
+  return heatmapColor(normVal(v));
+}
+
+function updateColorbar() {
+  const meta = CRIT_META[currentCrit] || {};
+  const fmt  = v => v.toFixed(meta.dec??2) + (meta.unit?' '+meta.unit:'');
+  const mid  = (critRange.min+critRange.max)/2;
+  document.getElementById('colorbarBar').style.background  = buildColorbarGradient();
+  document.getElementById('colorbarCrit').textContent = meta.label ?? currentCrit;
+  document.getElementById('colorbarMin').textContent  = fmt(critRange.min);
+  document.getElementById('colorbarMid').textContent  = fmt(mid);
+  document.getElementById('colorbarMax').textContent  = fmt(critRange.max);
+  const jv = getJvalSrc();
+  const hasJ = jv[currentCrit] &&
+    Array.from({length:17},(_,j)=>jv[currentCrit][j]).some(a=>Array.isArray(a));
+  document.getElementById('colorbarNote').textContent = hasJ ? 'per-joint heatmap' : 'body-wide scalar';
+}
+
+// ── SKEL rendering ─────────────────────────────────────────────────────────────
+const PROJ_FLAT = PROJ.map(p => new Float32Array(p.flat()));
+
+function drawSkelFrame(fi) {
+  const P     = PROJ_FLAT[fi];
+  const ctx2  = canvas.getContext('2d');
+  const sx    = canvas.width  / 1000;
+  const sy    = canvas.height / 1002;
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  const tris = [];
+
+  for (const [boneName, geo] of Object.entries(SKEL_GEO)) {
+    const cfg = BONE_CONFIG[boneName];
+    if (!cfg) continue;
+    const [px, py, pz] = kp3tj(fi, cfg.ph);
+    const rp = SKEL_REST_JS[cfg.ps];
+    const rd = SKEL_REST_JS[cfg.ds];
+    const [lx, ly, lz] = kp3tj(fi, cfg.dh);
+    let fdx = rd[0]-rp[0], fdy = rd[1]-rp[1], fdz = rd[2]-rp[2];
+    let tdx = lx-px,       tdy = ly-py,       tdz = lz-pz;
+    const fl = Math.sqrt(fdx*fdx+fdy*fdy+fdz*fdz);
+    const tl = Math.sqrt(tdx*tdx+tdy*tdy+tdz*tdz);
+    let q = [0,0,0,1];
+    if (fl > 1 && tl > 1)
+      q = qNorm(qFromUnitVecs(fdx/fl,fdy/fl,fdz/fl, tdx/tl,tdy/tl,tdz/tl));
+    const color = getBoneHeatColor(cfg.hj, fi);
+    const verts  = geo.verts;
+    const nVerts = verts.length;
+    const proj2d = new Float32Array(nVerts * 2);
+    const depth  = new Float32Array(nVerts);
+    for (let vi = 0; vi < nVerts; vi++) {
+      const [vx, vy, vz] = verts[vi];
+      const [wx, wy, wz] = qRot(q, vx, vy, vz);
+      const worldX = px + wx, worldY = py + wy, worldZ = pz + wz;
+      const w_ = P[8]*worldX + P[9]*worldY + P[10]*worldZ + P[11];
+      proj2d[vi*2  ] = (P[0]*worldX + P[1]*worldY + P[2]*worldZ + P[3]) / w_ * sx;
+      proj2d[vi*2+1] = (P[4]*worldX + P[5]*worldY + P[6]*worldZ + P[7]) / w_ * sy;
+      depth[vi]      = w_;
+    }
+    for (const [i0, i1, i2] of geo.faces) {
+      const x0 = proj2d[i0*2], y0 = proj2d[i0*2+1];
+      const x1 = proj2d[i1*2], y1 = proj2d[i1*2+1];
+      const x2 = proj2d[i2*2], y2 = proj2d[i2*2+1];
+      const minX = Math.min(x0,x1,x2), maxX = Math.max(x0,x1,x2);
+      const minY = Math.min(y0,y1,y2), maxY = Math.max(y0,y1,y2);
+      if (maxX < 0 || minX > canvas.width || maxY < 0 || minY > canvas.height) continue;
+      tris.push({
+        x0,y0,x1,y1,x2,y2,
+        depth:(depth[i0]+depth[i1]+depth[i2])/3,
+        color,
+        isSkull: boneName==='head',
+      });
+    }
+  }
+
+  tris.sort((a,b) => b.depth - a.depth);
+  for (const t of tris) {
+    ctx2.beginPath(); ctx2.moveTo(t.x0,t.y0); ctx2.lineTo(t.x1,t.y1);
+    ctx2.lineTo(t.x2,t.y2); ctx2.closePath();
+    ctx2.fillStyle = t.color; ctx2.fill();
+  }
+  for (const t of tris) {
+    ctx2.beginPath(); ctx2.moveTo(t.x0,t.y0); ctx2.lineTo(t.x1,t.y1);
+    ctx2.lineTo(t.x2,t.y2); ctx2.closePath();
+    ctx2.strokeStyle = t.isSkull ? 'rgba(0,0,0,0.30)' : 'rgba(0,0,0,0.18)';
+    ctx2.lineWidth   = t.isSkull ? 0.55 : 0.4;
+    ctx2.stroke();
+  }
+}
+
+// ── Canvas / video ─────────────────────────────────────────────────────────────
+const vid      = document.getElementById('vid');
+const canvas   = document.getElementById('kpCanvas');
+const playBtn  = document.getElementById('playBtn');
+const modelSel = document.getElementById('modelSel');
+const track    = document.getElementById('track');
+const fill     = document.getElementById('fill');
+const knob     = document.getElementById('knob');
+const infoFrame= document.getElementById('infoFrame');
+const infoTime = document.getElementById('infoTime');
+const infoPlay = document.getElementById('infoPlay');
+const statFrame= document.getElementById('statFrame');
+const statTime = document.getElementById('statTime');
+const statVal  = document.getElementById('statVal');
+const chartMeta= document.getElementById('chartMeta');
+
+function resizeCanvas() {
+  canvas.width  = vid.offsetWidth;
+  canvas.height = vid.offsetHeight;
+  drawSkelFrame(Math.max(0, Math.min(N-1, currentFrame - F_START)));
+}
+
+// ── Frame control ──────────────────────────────────────────────────────────────
+function setFrame(f, syncVideo=true) {
+  f = Math.max(F_START, Math.min(F_END-1, Math.round(f)));
+  currentFrame = f;
+  const pct  = (f-F_START)/(N-1);
+  fill.style.width = (pct*100)+'%';
+  knob.style.left  = (pct*100)+'%';
+  const tSec = ((f-F_START)/FPS).toFixed(2);
+  infoFrame.textContent = f;
+  infoTime.textContent  = tSec+'s';
+  statFrame.textContent = f;
+  statTime.textContent  = tSec+'s';
+  const v = getScalar(getScalarSrc(), f);
+  if (v !== null) {
+    const m = CRIT_META[currentCrit]||{};
+    statVal.textContent = v.toFixed(m.dec??3)+(m.unit?' '+m.unit:'');
+  }
+  if (syncVideo) {
+    const ct = (f-F_START)/FPS;
+    if (Math.abs(vid.currentTime - ct) > 0.08) vid.currentTime = ct;
+  }
+  drawSkelFrame(f - F_START);
+  if (chartReady && !rafPending) { rafPending=true; requestAnimationFrame(updateChartDot); }
+}
+
+function getScalar(src, frame) {
+  if (!src || !src[currentCrit]) return null;
+  return src[currentCrit][frame-F_START] ?? null;
+}
+
+// ── Video playback ─────────────────────────────────────────────────────────────
+function togglePlay() {
+  if (vid.paused) {
+    if (vid.currentTime >= 5.0) vid.currentTime = 0;
+    vid.play(); playBtn.innerHTML='&#9646;&#9646; Pause'; infoPlay.textContent='Playing';
+  } else {
+    vid.pause(); playBtn.innerHTML='&#9654; Play'; infoPlay.textContent='Paused';
+  }
+}
+function onVideoTime() {
+  if (dragging) return;
+  const f = F_START + Math.round(vid.currentTime * FPS);
+  if (f < F_START || f >= F_END) {
+    if (!vid.paused) { vid.pause(); playBtn.innerHTML='&#9654; Play'; infoPlay.textContent='Paused'; }
+    return;
+  }
+  if (f !== currentFrame) setFrame(f, false);
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────────────
+function getTimeseries(src) { return src[currentCrit] ?? []; }
+
+function rebuildChart() {
+  chartReady = false;
+  const meta   = CRIT_META[currentCrit]||{};
+  const xVals  = DATA.frames;
+  const gtY    = getTimeseries(DATA.gt);
+  const modY   = getTimeseries(getScalarSrc());
+  const modCol = "#38bdf8";
+  const cen    = currentFrame - F_START;
+  const dotGT  = gtY[cen] ?? 0;
+  const dotMod = modY[cen] ?? null;
+  const traces = [];
+
+  traces.push({x:xVals,y:gtY,type:'scatter',mode:'lines',name:'GT label',
+    line:{color:'#60a5fa',width:1.5,dash:'dot'},
+    hovertemplate:`Frame %{x}<br>${meta.label}: %{y:.${meta.dec??3}f}${meta.unit?' '+meta.unit:''}<extra>GT</extra>`});
+
+  traces.push({x:xVals,y:modY,type:'scatter',mode:'lines',name:"D3DP FT",
+    line:{color:modCol,width:2.5},
+    hovertemplate:`Frame %{x}<br>${meta.label}: %{y:.${meta.dec??3}f}${meta.unit?' '+meta.unit:''}<extra>D3DP FT</extra>`});
+
+  traces.push({x:[currentFrame],y:[dotMod??dotGT],type:'scatter',mode:'markers',
+    marker:{color:modCol,size:12,symbol:'circle',line:{color:'white',width:2}},
+    showlegend:false,hoverinfo:'skip'});
+
+  const allY = [...gtY,...modY].filter(v=>v!=null&&isFinite(v));
+  const yMin = allY.length?Math.min(...allY):0;
+  const yMax = allY.length?Math.max(...allY):1;
+  const yPad = (yMax-yMin)*0.12||0.1;
+
+  Plotly.react('chart', traces, {
+    template:'plotly_dark', paper_bgcolor:'#111827', plot_bgcolor:'#111827',
+    margin:{l:56,r:20,t:32,b:36},
+    font:{family:'Inter,system-ui',size:11,color:'#94a3b8'},
+    title:{text:meta.label,font:{size:13,color:'#e2e8f0'},x:0.5,xanchor:'center'},
+    xaxis:{title:{text:'Frame',font:{size:11}},showgrid:true,gridcolor:'#1e293b',range:[F_START,F_END]},
+    yaxis:{title:{text:`${meta.label}${meta.unit?' ('+meta.unit+')':''}`,font:{size:11}},
+           showgrid:true,gridcolor:'#1e293b',range:[yMin-yPad,yMax+yPad]},
+    legend:{x:0.01,y:0.99,bgcolor:'rgba(17,24,39,.85)',bordercolor:'#1e293b',borderwidth:1},
+    shapes:[{type:'line',x0:currentFrame,x1:currentFrame,y0:yMin-yPad,y1:yMax+yPad,
+             line:{color:'rgba(255,255,255,.5)',width:1.5,dash:'dash'}}],
+    annotations:[{x:currentFrame,y:dotMod??dotGT,
+      text:`<b>${(dotMod??dotGT).toFixed(meta.dec??3)}${meta.unit?' '+meta.unit:''}</b><br>Frame ${currentFrame}`,
+      showarrow:true,arrowhead:2,arrowsize:1.2,arrowcolor:'#fff',
+      ax:65,ay:-44,bgcolor:'#1e293b',bordercolor:"#38bdf8",borderwidth:1.5,borderpad:7,
+      font:{color:'#e2e8f0',size:12}}],
+    hovermode:'x unified',
+  }, {displayModeBar:false,responsive:true}).then(()=>{ chartReady=true; });
+
+  chartMeta.textContent = (meta.desc||meta.label) + '  ·  ' + "D3DP FT" + ' (solid) vs GT (dotted)';
+}
+
+function updateChartDot() {
+  rafPending = false;
+  if (!chartReady) return;
+  const meta   = CRIT_META[currentCrit]||{};
+  const cen    = currentFrame - F_START;
+  const modY   = getTimeseries(getScalarSrc());
+  const gtY    = getTimeseries(DATA.gt);
+  const dotMod = modY[cen]??null;
+  const dotGT  = gtY[cen]??0;
+  Plotly.restyle('chart',{x:[[currentFrame]],y:[[dotMod??dotGT]]},[2]);
+  const yr = document.getElementById('chart')._fullLayout?.yaxis?.range??[0,1];
+  Plotly.relayout('chart',{
+    'shapes[0].x0':currentFrame,'shapes[0].x1':currentFrame,
+    'shapes[0].y0':yr[0],'shapes[0].y1':yr[1],
+    'annotations[0].x':currentFrame,'annotations[0].y':dotMod??dotGT,
+    'annotations[0].text':`<b>${(dotMod??dotGT).toFixed(meta.dec??3)}${meta.unit?' '+meta.unit:''}</b><br>Frame ${currentFrame}`,
+  });
+}
+
+// ── Group / criteria tabs ──────────────────────────────────────────────────────
+function selectGroup(g) {
+  currentGroup = g;
+  document.querySelectorAll('.gtab').forEach(el=>el.classList.toggle('active',el.dataset.group===g));
+  const crits = GROUPS[g]??[];
+  currentCrit = crits[0];
+  renderCritTabs(); computeCritRange(); updateColorbar(); rebuildChart();
+  drawSkelFrame(currentFrame - F_START);
+}
+
+function renderCritTabs() {
+  const el = document.getElementById('critTabs');
+  el.innerHTML = '';
+  (GROUPS[currentGroup]??[]).forEach(c => {
+    const b = document.createElement('div');
+    b.className = 'ctab'+(c===currentCrit?' active':'');
+    b.textContent = CRIT_META[c]?.label??c;
+    b.addEventListener('click', () => {
+      currentCrit = c;
+      document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      computeCritRange(); updateColorbar(); rebuildChart();
+      drawSkelFrame(currentFrame - F_START);
+    });
+    el.appendChild(b);
+  });
+}
+
+// ── Scrubber ───────────────────────────────────────────────────────────────────
+function pctToFrame(p) { return Math.round(F_START + p*(N-1)); }
+function trackPct(e)   { const r=track.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); }
+function startDrag(e)  { if(e.target!==knob)return; dragging=true; vid.pause(); playBtn.innerHTML='&#9654; Play'; infoPlay.textContent='Paused'; e.preventDefault(); }
+function onDrag(e)     { if(dragging) setFrame(pctToFrame(trackPct(e))); }
+function endDrag()     { if(!dragging)return; dragging=false; vid.currentTime=(currentFrame-F_START)/FPS; }
+function onTrackClick(e) {
+  if(e.target===knob)return;
+  vid.pause(); playBtn.innerHTML='&#9654; Play'; infoPlay.textContent='Paused';
+  const f=pctToFrame(trackPct(e)); setFrame(f); vid.currentTime=(f-F_START)/FPS;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function init() {
+  vid.addEventListener('loadedmetadata', () => { resizeCanvas(); vid.currentTime=(currentFrame-F_START)/FPS; });
+  vid.addEventListener('timeupdate', onVideoTime);
+  vid.addEventListener('click', togglePlay);
+  window.addEventListener('resize', resizeCanvas);
+  playBtn.addEventListener('click', togglePlay);
+
+  document.getElementById('lblStart').textContent=`Frame ${F_START}  (${(F_START/FPS).toFixed(1)}s)`;
+  document.getElementById('lblEnd').textContent=`Frame ${F_END}  (${(F_END/FPS).toFixed(1)}s)`;
+
+  Object.keys(DATA.models).forEach(name => {
+    const o=document.createElement('option'); o.value=o.textContent=name; modelSel.appendChild(o);
+  });
+  modelSel.value = currentModel;
+  modelSel.addEventListener('change', () => {
+    currentModel=modelSel.value; computeCritRange(); updateColorbar(); rebuildChart();
+    drawSkelFrame(currentFrame-F_START);
+  });
+
+  const gtEl=document.getElementById('groupTabs');
+  Object.keys(GROUPS).forEach(g => {
+    const b=document.createElement('div');
+    b.className='gtab'+(g===currentGroup?' active':'');
+    b.textContent=g; b.dataset.group=g;
+    b.addEventListener('click',()=>selectGroup(g));
+    gtEl.appendChild(b);
+  });
+  renderCritTabs();
+
+  track.addEventListener('mousedown',startDrag);
+  document.addEventListener('mousemove',onDrag);
+  document.addEventListener('mouseup',endDrag);
+  track.addEventListener('click',onTrackClick);
+
+  computeCritRange(); updateColorbar(); rebuildChart();
+  setFrame(currentFrame);
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
