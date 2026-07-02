@@ -139,24 +139,32 @@ J can be 17 (H36M 17-joint) or 32 (full H36M, joints are auto-selected).
 
 ```
 BioModule/
-├── bio_module/            # Core Python package
-│   ├── model.py           # BioModuleV3 architecture
-│   ├── dataset.py         # BioDataset (Mode A & B)
-│   ├── loss.py            # Mixed MSE / BCE loss + evaluation metrics
-│   ├── train.py           # Training pipeline (3-phase)
-│   └── pose_estimator.py  # Wrappers for MHFormer, TCPFormer, etc.
-├── eval.py                # Standalone evaluation script
+├── bio_module/                    # Core Python package
+│   ├── model.py                   # BioModuleV3 architecture
+│   ├── dataset.py                 # BioDataset (Mode A & B)
+│   ├── loss.py                    # Mixed MSE / BCE loss + evaluation metrics
+│   ├── train.py                   # Training pipeline (3-phase)
+│   └── pose_estimator.py          # Wrappers for MHFormer, TCPFormer, etc.
+├── eval.py                        # Standalone evaluation script
 ├── scripts/
-│   ├── train.sh           # Training convenience wrapper
-│   ├── eval.sh            # Evaluation convenience wrapper
-│   └── assemble_poses.py  # Reassemble cached per-clip pose files
+│   ├── build_aligned_dataset.py   # Build aligned.npz from H36M + H36M+ CSVs
+│   ├── save_norm_stats.py         # Compute z-score statistics for training
+│   ├── precompute_poses.py        # Run any pose estimator → poses .npy
+│   ├── train.sh                   # Training convenience wrapper
+│   ├── eval.sh                    # Evaluation convenience wrapper
+│   └── assemble_poses.py          # Reassemble cached per-clip pose files
 ├── docs/
-│   ├── architecture.md    # Full V3 architecture specification
-│   └── preprocessing.md   # H36M + OpenSim data pipeline
+│   ├── architecture.md            # Full architecture specification
+│   └── preprocessing.md           # Data acquisition + full processing pipeline
+├── checkpoint/
+│   └── norm_stats.json            # Pre-computed z-score stats (all 16 criteria)
+├── data/
+│   ├── sample/                    # Reference clip: S1/Sitting1, all criteria
+│   └── README.md                  # Data layout + download links
 ├── results/
-│   ├── figures/           # Result figures
-│   ├── eval_gt.json       # GT-input evaluation (Phase 1)
-│   ├── eval_mhformer.json # MHFormer-input evaluation
+│   ├── figures/                   # Result figures
+│   ├── eval_gt.json
+│   ├── eval_mhformer.json
 │   ├── eval_posemamba.json
 │   └── eval_tcpformer.json
 ├── requirements.txt
@@ -165,13 +173,94 @@ BioModule/
 
 ---
 
-## Data
+## Data Setup
 
-- **Poses:** [Human3.6M](http://vision.imar.ro/human3.6m/) — 17-joint subset, root-centred, metres, 50 Hz.
-- **Biomechanical criteria:** Human3.6M+ OpenSim simulation CSVs (torque, power, GRF, muscle activation, etc.).
-- **Train subjects:** S1, S5, S6, S7, S8 — **Test subjects:** S9, S11.
+BioModule depends on three data sources. Two are restricted; one is freely
+downloadable. The table below summarises access and the processing step each
+feeds into.
 
-See [`docs/preprocessing.md`](docs/preprocessing.md) for the full data preparation pipeline.
+| Source | License | Size | Used for |
+|--------|---------|------|---------|
+| [Human3.6M](http://vision.imar.ro/human3.6m/) poses | Restricted — request access | ~700 MB | training input, alignment |
+| H36M+ OpenSim biomechanical CSVs | Contact authors | ~3 GB raw | ground-truth labels |
+| [Human3.6M camera parameters](https://github.com/karfly/human36m-camera-parameters) | Public (MIT) | <1 MB | alignment projection |
+
+### Quick start — pre-processed data (recommended)
+
+If you want to train or evaluate without rebuilding everything from source,
+download `processed_all.zip` from the GitHub Release:
+
+```bash
+wget https://github.com/eghbalian-ayda/BioModule/releases/download/v1.0-data/processed_all.zip
+unzip processed_all.zip   # → processed_all/processed_all/{S1,S5,S6,S7,S8,S9,S11}/
+```
+
+Then train directly in Mode A:
+
+```bash
+./scripts/train.sh --mode A --normalized-dir processed_all/processed_all
+```
+
+### Rebuilding from raw data
+
+If you have access to the H36M+ CSV database and want to reproduce the full
+preprocessing pipeline:
+
+**Step 1 — Obtain Human3.6M**
+
+Request access at http://vision.imar.ro/human3.6m/ and download:
+- `data_3d_h36m.npz`
+- `data_2d_h36m_cpn_ft_h36m_dbb.npz`
+- `data_2d_h36m_gt.npz`
+
+**Step 2 — Obtain camera parameters**
+
+```bash
+git clone https://github.com/karfly/human36m-camera-parameters
+```
+
+**Step 3 — Build `aligned.npz` files**
+
+```bash
+python scripts/build_aligned_dataset.py \
+    --db-root  /path/to/h36m_database \
+    --pose-2d  dataset/data_2d_h36m_gt.npz \
+    --pose-3d  dataset/data_3d_h36m.npz \
+    --cam-json human36m-camera-parameters/camera-parameters.json
+```
+
+This writes one `aligned/aligned.npz` per (subject, action) folder inside
+`h36m_database/`. Each file contains frame-aligned 3D poses, 2D projections,
+marker pixel coordinates, and joint DoF values.
+
+**Step 4 — Compute normalisation statistics**
+
+```bash
+python scripts/save_norm_stats.py \
+    --db-root /path/to/h36m_database \
+    --out     checkpoint/norm_stats.json
+```
+
+A pre-computed `checkpoint/norm_stats.json` is already committed to this
+repository — skip this step unless you change the subject split.
+
+**Step 5 — Precompute pose estimator outputs** *(evaluation only)*
+
+```bash
+python scripts/precompute_poses.py \
+    --pose-2d      dataset/data_2d_h36m_cpn_ft_h36m_dbb.npz \
+    --model-type   mhformer \
+    --model-weights model/model_4294.pth \
+    --frames       351 \
+    --subjects     S9 S11 \
+    --out          poses_mhformer.npy
+```
+
+For other estimators edit `load_custom_model()` in `scripts/precompute_poses.py`.
+
+See [`docs/preprocessing.md`](docs/preprocessing.md) for the complete
+specification of all criteria, DoF orderings, normalisation conventions,
+and frame-alignment details.
 
 ---
 
