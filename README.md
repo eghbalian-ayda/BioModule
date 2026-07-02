@@ -182,7 +182,7 @@ feeds into.
 | Source | License | Size | Used for |
 |--------|---------|------|---------|
 | [Human3.6M](http://vision.imar.ro/human3.6m/) poses | Restricted — request access | ~700 MB | training input, alignment |
-| H36M+ OpenSim biomechanical CSVs | Contact authors | ~3 GB raw | ground-truth labels |
+| [Human3.6M+](https://github.com/ainlamyae/Human3.6Mplus) OpenSim biomechanical data | See repo | ~3 GB raw | ground-truth labels |
 | [Human3.6M camera parameters](https://github.com/karfly/human36m-camera-parameters) | Public (MIT) | <1 MB | alignment projection |
 
 ### Quick start — pre-processed data (recommended)

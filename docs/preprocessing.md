@@ -47,10 +47,12 @@ project 3D joints into each of the four H36M camera views.
 
 ---
 
-### 1c. H36M+ OpenSim biomechanical criteria (contact authors)
+### 1c. Human3.6M+ OpenSim biomechanical data
 
 The biomechanical ground-truth labels are OpenSim musculoskeletal simulation
 outputs, computed per subject and action at 50 Hz to match H36M capture rate.
+
+**Repository:** https://github.com/ainlamyae/Human3.6Mplus
 
 **Database layout:**
 ```
