@@ -2,13 +2,22 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
-checkpoint/
+
+# Model weights — ignore, but keep norm_stats.json and train_log.csv
+checkpoint/**/*.pth
+checkpoint/**/*.pt
+checkpoint/**/*.bin
+
+# Large array files — ignore, but allow sample data
 *.npy
+!data/sample/*.npy
 *.npz
 *.pth
 *.pt
+
 *.egg-info/
 dist/
 build/
 .venv/
 venv/
+logs/

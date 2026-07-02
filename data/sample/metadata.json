@@ -1,0 +1,762 @@
+{
+  "dataset_info": {
+    "name": "Human3.6M - S1 Sitting 1",
+    "subject": "S1",
+    "action": "Sitting 1",
+    "original_dataset": "Human3.6M",
+    "extended_format": "Human3.6M Plus",
+    "fps": 50,
+    "frame_time": 0.02,
+    "total_frames": 3304,
+    "duration_seconds": 66.08,
+    "num_keypoints": 32,
+    "coordinates": [
+      "x",
+      "y",
+      "z"
+    ]
+  },
+  "skeleton_structure": {
+    "num_joints": 32,
+    "parent_indices": [
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      0,
+      6,
+      7,
+      8,
+      9,
+      0,
+      11,
+      12,
+      13,
+      14,
+      12,
+      16,
+      17,
+      18,
+      19,
+      20,
+      19,
+      22,
+      12,
+      24,
+      25,
+      26,
+      27,
+      28,
+      27,
+      30
+    ],
+    "joints_left": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "joints_right": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ]
+  },
+  "keypoint_to_marker_mapping": {
+    "0": {
+      "marker": "K1",
+      "name": "Pelvis",
+      "h36plus_dofs": [
+        "J1",
+        "J2",
+        "J3",
+        "J4",
+        "J5",
+        "J6"
+      ]
+    },
+    "1": {
+      "marker": "K12",
+      "name": "Right Hip",
+      "h36plus_dofs": [
+        "J27",
+        "J28",
+        "J29"
+      ]
+    },
+    "2": {
+      "marker": "K13",
+      "name": "Right Knee",
+      "h36plus_dofs": [
+        "J30"
+      ]
+    },
+    "3": {
+      "marker": "K14",
+      "name": "Right Ankle",
+      "h36plus_dofs": [
+        "J31",
+        "J32",
+        "J33"
+      ]
+    },
+    "6": {
+      "marker": "K16",
+      "name": "Left Hip",
+      "h36plus_dofs": [
+        "J34",
+        "J35",
+        "J36"
+      ]
+    },
+    "7": {
+      "marker": "K17",
+      "name": "Left Knee",
+      "h36plus_dofs": [
+        "J37"
+      ]
+    },
+    "8": {
+      "marker": "K18",
+      "name": "Left Ankle",
+      "h36plus_dofs": [
+        "J38",
+        "J39",
+        "J40"
+      ]
+    },
+    "11": {
+      "marker": "K1",
+      "name": "Lumbar/Thorax",
+      "h36plus_dofs": [
+        "J7",
+        "J8",
+        "J9"
+      ]
+    },
+    "13": {
+      "marker": "K2",
+      "name": "Neck",
+      "h36plus_dofs": [
+        "J10",
+        "J11",
+        "J12"
+      ]
+    },
+    "17": {
+      "marker": "K8",
+      "name": "Left Shoulder",
+      "h36plus_dofs": [
+        "J20",
+        "J21",
+        "J22"
+      ]
+    },
+    "18": {
+      "marker": "K9",
+      "name": "Left Elbow",
+      "h36plus_dofs": [
+        "J23",
+        "J24"
+      ]
+    },
+    "19": {
+      "marker": "K10",
+      "name": "Left Wrist",
+      "h36plus_dofs": [
+        "J25",
+        "J26"
+      ]
+    },
+    "25": {
+      "marker": "K4",
+      "name": "Right Shoulder",
+      "h36plus_dofs": [
+        "J13",
+        "J14",
+        "J15"
+      ]
+    },
+    "26": {
+      "marker": "K5",
+      "name": "Right Elbow",
+      "h36plus_dofs": [
+        "J16",
+        "J17"
+      ]
+    },
+    "28": {
+      "marker": "K6",
+      "name": "Right Wrist",
+      "h36plus_dofs": [
+        "J18",
+        "J19"
+      ]
+    }
+  },
+  "h36plus_markers": {
+    "K18": {
+      "keypoints": [
+        8
+      ],
+      "names": [
+        "Left Ankle"
+      ]
+    },
+    "K12": {
+      "keypoints": [
+        1
+      ],
+      "names": [
+        "Right Hip"
+      ]
+    },
+    "K2": {
+      "keypoints": [
+        13
+      ],
+      "names": [
+        "Neck"
+      ]
+    },
+    "K5": {
+      "keypoints": [
+        26
+      ],
+      "names": [
+        "Right Elbow"
+      ]
+    },
+    "K10": {
+      "keypoints": [
+        19
+      ],
+      "names": [
+        "Left Wrist"
+      ]
+    },
+    "K6": {
+      "keypoints": [
+        28
+      ],
+      "names": [
+        "Right Wrist"
+      ]
+    },
+    "K4": {
+      "keypoints": [
+        25
+      ],
+      "names": [
+        "Right Shoulder"
+      ]
+    },
+    "K16": {
+      "keypoints": [
+        6
+      ],
+      "names": [
+        "Left Hip"
+      ]
+    },
+    "K1": {
+      "keypoints": [
+        0,
+        11
+      ],
+      "names": [
+        "Lumbar/Thorax",
+        "Pelvis"
+      ]
+    },
+    "K17": {
+      "keypoints": [
+        7
+      ],
+      "names": [
+        "Left Knee"
+      ]
+    },
+    "K13": {
+      "keypoints": [
+        2
+      ],
+      "names": [
+        "Right Knee"
+      ]
+    },
+    "K9": {
+      "keypoints": [
+        18
+      ],
+      "names": [
+        "Left Elbow"
+      ]
+    },
+    "K8": {
+      "keypoints": [
+        17
+      ],
+      "names": [
+        "Left Shoulder"
+      ]
+    },
+    "K14": {
+      "keypoints": [
+        3
+      ],
+      "names": [
+        "Right Ankle"
+      ]
+    }
+  },
+  "degrees_of_freedom": {
+    "J1": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J2": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J3": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J4": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J5": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J6": {
+      "marker": "K1",
+      "keypoint": 0
+    },
+    "J7": {
+      "marker": "K1",
+      "keypoint": 11
+    },
+    "J8": {
+      "marker": "K1",
+      "keypoint": 11
+    },
+    "J9": {
+      "marker": "K1",
+      "keypoint": 11
+    },
+    "J10": {
+      "marker": "K2",
+      "keypoint": 13
+    },
+    "J11": {
+      "marker": "K2",
+      "keypoint": 13
+    },
+    "J12": {
+      "marker": "K2",
+      "keypoint": 13
+    },
+    "J13": {
+      "marker": "K4",
+      "keypoint": 25
+    },
+    "J14": {
+      "marker": "K4",
+      "keypoint": 25
+    },
+    "J15": {
+      "marker": "K4",
+      "keypoint": 25
+    },
+    "J16": {
+      "marker": "K5",
+      "keypoint": 26
+    },
+    "J17": {
+      "marker": "K5",
+      "keypoint": 26
+    },
+    "J18": {
+      "marker": "K6",
+      "keypoint": 28
+    },
+    "J19": {
+      "marker": "K6",
+      "keypoint": 28
+    },
+    "J20": {
+      "marker": "K8",
+      "keypoint": 17
+    },
+    "J21": {
+      "marker": "K8",
+      "keypoint": 17
+    },
+    "J22": {
+      "marker": "K8",
+      "keypoint": 17
+    },
+    "J23": {
+      "marker": "K9",
+      "keypoint": 18
+    },
+    "J24": {
+      "marker": "K9",
+      "keypoint": 18
+    },
+    "J25": {
+      "marker": "K10",
+      "keypoint": 19
+    },
+    "J26": {
+      "marker": "K10",
+      "keypoint": 19
+    },
+    "J27": {
+      "marker": "K12",
+      "keypoint": 1
+    },
+    "J28": {
+      "marker": "K12",
+      "keypoint": 1
+    },
+    "J29": {
+      "marker": "K12",
+      "keypoint": 1
+    },
+    "J30": {
+      "marker": "K13",
+      "keypoint": 2
+    },
+    "J31": {
+      "marker": "K14",
+      "keypoint": 3
+    },
+    "J32": {
+      "marker": "K14",
+      "keypoint": 3
+    },
+    "J33": {
+      "marker": "K14",
+      "keypoint": 3
+    },
+    "J34": {
+      "marker": "K16",
+      "keypoint": 6
+    },
+    "J35": {
+      "marker": "K16",
+      "keypoint": 6
+    },
+    "J36": {
+      "marker": "K16",
+      "keypoint": 6
+    },
+    "J37": {
+      "marker": "K17",
+      "keypoint": 7
+    },
+    "J38": {
+      "marker": "K18",
+      "keypoint": 8
+    },
+    "J39": {
+      "marker": "K18",
+      "keypoint": 8
+    },
+    "J40": {
+      "marker": "K18",
+      "keypoint": 8
+    }
+  },
+  "criteria_files": {
+    "activation_signals": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_activation_signals.npy",
+      "shape": [
+        3304,
+        68
+      ],
+      "num_fields": 68,
+      "markers": [
+        "J7p",
+        "J40p",
+        "J7n",
+        "J40n"
+      ],
+      "description": "The marker we have data for [J7p -J40p] + [J7n \u2013 J40n]",
+      "type": "activation"
+    },
+    "active_torque_angle_scaling_function": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_active_torque_angle_scaling_function.npy",
+      "shape": [
+        3304,
+        68
+      ],
+      "num_fields": 68,
+      "markers": [
+        "J7p",
+        "J40p",
+        "J7n",
+        "J40n"
+      ],
+      "description": "Active torque angle scaling function [J7p -J40p] + [J7n \u2013 J40n]",
+      "type": "scaling_function"
+    },
+    "active_torque_angular_velocity_scaling_function": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_active_torque_angular_velocity_scaling_function.npy",
+      "shape": [
+        3304,
+        68
+      ],
+      "num_fields": 68,
+      "markers": [
+        "J7p",
+        "J40p",
+        "J7n",
+        "J40n"
+      ],
+      "description": "Active torque angular velocity scaling function [J7p -J40p] + [J7n \u2013 J40n]",
+      "type": "scaling_function"
+    },
+    "dimensionless_acceleration": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_acceleration.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Dimensionless acceleration [J7 -J40]",
+      "type": "kinematic"
+    },
+    "dimensionless_active_torque": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_active_torque.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Dimensionless active torque [J7 -J40]",
+      "type": "torque"
+    },
+    "dimensionless_ground_reaction": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_ground_reaction.npy",
+      "shape": [
+        3304,
+        12
+      ],
+      "num_fields": 12,
+      "markers": [
+        "RGRF(x,y,z)",
+        "RGRT(x,y,z)",
+        "LGRF(x,y,z)",
+        "LGRT(x,y,z)"
+      ],
+      "description": "RGRF(x,y,z) + RGRT(x,y,z) + LGRF(x,y,z) + LGRT(x,y,z)",
+      "type": "ground_reaction"
+    },
+    "dimensionless_ideal_torque": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_ideal_torque.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Dimensionless ideal torque [J7 -J40]",
+      "type": "torque"
+    },
+    "dimensionless_instantaneous_power": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_instantaneous_power.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Dimensionless instantaneous power [J7 -J40]",
+      "type": "power"
+    },
+    "dimensionless_marker": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_marker.npy",
+      "shape": [
+        3304,
+        60
+      ],
+      "num_fields": 60,
+      "markers": [
+        "M1(x,y,z)",
+        "M20(x,y,z)"
+      ],
+      "description": "Dimensionless marker positions [M1(x,y,z) \u2013 M20(x,y,z)]",
+      "type": "position"
+    },
+    "dimensionless_passive_torque": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_passive_torque.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Dimensionless passive torque [J7 -J40]",
+      "type": "torque"
+    },
+    "dimensionless_seat_reaction": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_seat_reaction.npy",
+      "shape": [
+        3304,
+        1
+      ],
+      "num_fields": 1,
+      "markers": [
+        "SRFy"
+      ],
+      "description": "Dimensionless seat reaction force RSRFy",
+      "type": "seat_reaction"
+    },
+    "dimensionless_speed": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_speed.npy",
+      "shape": [
+        3304,
+        40
+      ],
+      "num_fields": 40,
+      "markers": [
+        "J1",
+        "J40"
+      ],
+      "description": "Dimensionless speed [J1 -J40]",
+      "type": "kinematic"
+    },
+    "excitation_signals": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_excitation_signals.npy",
+      "shape": [
+        3304,
+        68
+      ],
+      "num_fields": 68,
+      "markers": [
+        "J7p",
+        "J40p",
+        "J7n",
+        "J40n"
+      ],
+      "description": "Excitation signals [J7p -J40p] + [J7n \u2013 J40n]",
+      "type": "excitation"
+    },
+    "dimensionless_instantaneous_power_normalized": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_dimensionless_instantaneous_power_normalized.npy",
+      "shape": [
+        3304,
+        34
+      ],
+      "num_fields": 34,
+      "markers": [
+        "J7",
+        "J40"
+      ],
+      "description": "Normalized dimensionless instantaneous power [J7 -J40]",
+      "type": "power"
+    },
+    "normalized_active_torque": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_normalized_active_torque.npy",
+      "shape": [
+        3304,
+        68
+      ],
+      "num_fields": 68,
+      "markers": [
+        "J7p",
+        "J40p",
+        "J7n",
+        "J40n"
+      ],
+      "description": "Normalized active torque [J7p -J40p] + [J7n \u2013 J40n]",
+      "type": "torque"
+    },
+    "touch": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_touch.npy",
+      "shape": [
+        3304,
+        2
+      ],
+      "num_fields": 2,
+      "markers": [
+        "F + L"
+      ],
+      "description": "Touch/contact information R + L",
+      "type": "contact"
+    },
+    "seat": {
+      "path": "/content/drive/MyDrive/Colab Notebooks/MHFormer+h3.6plus/S1/processed/criterion_seat.npy",
+      "shape": [
+        3304,
+        1
+      ],
+      "num_fields": 1,
+      "markers": [
+        "S"
+      ],
+      "description": "Seat contact information S",
+      "type": "contact"
+    }
+  },
+  "file_paths": {
+    "pose_data": "S1_Sitting1.npy",
+    "criteria_prefix": "criterion_"
+  },
+  "units": {
+    "position": "millimeters",
+    "time": "seconds",
+    "dimensionless_values": "normalized"
+  },
+  "notes": [
+    "Pose data contains 3D positions of 32 keypoints",
+    "All criterion files are synchronized at 50 fps",
+    "Dimensionless values are normalized according to H36M+ protocol",
+    "Ground reaction forces include both left and right foot",
+    "Torques are reported for specific joints as indicated in markers",
+    "Each criterion file has shape (num_frames, num_fields) where num_fields is specific to that criterion"
+  ]
+}
