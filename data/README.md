@@ -38,8 +38,9 @@ Pre-processed OpenSim biomechanical criteria for all subjects/actions,
 in the `processed_all/` format consumed by BioModule v1 (`bio_module/`).
 
 **Download (GitHub Release):**
-```
-https://github.com/eghbalian-ayda/BioModule/releases/latest
+```bash
+wget https://github.com/eghbalian-ayda/BioModule/releases/download/v1.0-data/processed_all.zip
+unzip processed_all.zip
 ```
 File: `processed_all.zip` (~948 MB compressed, ~2.4 GB unzipped)
 
