@@ -13,10 +13,10 @@
   --border:#1e293b;--txt:#e2e8f0;--sub:#64748b;--muted:#475569;
 }
 html,body{background:var(--bg0);color:var(--txt);
-  font:11.5px/1.4 'Inter',system-ui,sans-serif;overflow-x:auto}
+  font:11.5px/1.4 'Inter',system-ui,sans-serif;overflow-x:auto;padding-bottom:24px}
 
 .top-bar{display:flex;align-items:center;gap:10px;
-  padding:9px 16px;background:var(--bg1);border-bottom:1px solid var(--border)}
+  padding:9px 18px;background:var(--bg1);border-bottom:1px solid var(--border)}
 .top-bar h1{font-size:13px;font-weight:800;
   background:linear-gradient(90deg,#60a5fa,#34d399,#f472b6,#fbbf24);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
@@ -26,43 +26,30 @@ html,body{background:var(--bg0);color:var(--txt);
   padding:1px 9px;font-size:10px;color:#fca5a5;font-weight:700;white-space:nowrap}
 
 .timer-bar{display:flex;align-items:center;gap:8px;
-  padding:5px 16px;background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:5px 18px;background:var(--bg1);border-bottom:1px solid var(--border);
   font-size:10px;color:var(--sub)}
 .timer-track{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
 .timer-fill{height:100%;width:0%;border-radius:2px;
   background:linear-gradient(90deg,#60a5fa,#34d399,#f472b6)}
-.timer-txt{min-width:110px;text-align:right}
+.timer-txt{min-width:120px;text-align:right}
 
-.grid-outer{padding:12px 16px 20px}
-.grid{display:grid;gap:4px}
+.models-wrap{padding:16px 22px 8px;display:flex;flex-direction:column;gap:24px}
 
-/* shared layout tokens used by JS */
-:root{
-  --lw:92px;    /* label column width */
-  --cw:140px;   /* cell canvas width */
-}
+.model-hdr{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.model-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.model-name{font-size:11px;font-weight:800;letter-spacing:.3px}
 
-.corner,.model-hdr{height:34px;display:flex;align-items:center;
-  justify-content:center;border-radius:5px;
-  background:var(--bg2);border:1px solid var(--border)}
-.corner{background:transparent;border-color:transparent}
-.model-hdr{flex-direction:column;gap:1px;padding:3px}
-.model-hdr .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.model-hdr .name{font-size:9px;font-weight:700;letter-spacing:.2px;text-align:center;line-height:1.2}
+.metric-panels{display:flex;gap:18px;flex-wrap:nowrap}
 
-.metric-lbl{display:flex;flex-direction:column;justify-content:center;
-  padding:0 8px;font-size:9px;font-weight:700;color:var(--sub);
-  letter-spacing:.4px;text-transform:uppercase;line-height:1.4}
-.metric-lbl .unit{font-size:8px;font-weight:400;color:#334155;text-transform:none;letter-spacing:0}
-
-.cell{border-radius:5px;overflow:hidden;line-height:0;
-  border:1px solid var(--border);background:var(--bg2)}
-.cell canvas{display:block}
+.mpanel{display:flex;flex-direction:column}
+.mpanel-row{display:flex;gap:8px}
+.mpanel canvas{display:block}
+.mpanel-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.35px;
+  text-transform:uppercase;margin-top:5px;text-align:center}
 </style>
 </head>
 <body>
 
-<!-- Hidden shared video — drives all 35 cells -->
 <video id="vid" src="./video_walk.mp4" autoplay muted playsinline
   style="position:fixed;left:-9999px;width:1px;height:1px;pointer-events:none"></video>
 
@@ -71,19 +58,17 @@ html,body{background:var(--bg0);color:var(--txt);
     <h1>BioModule V3 — Right Knee Predictions · All Fine-Tuned Models</h1>
     <div class="sub">5 biomechanical criteria &nbsp;·&nbsp; 7 models &nbsp;·&nbsp; no GT baseline &nbsp;·&nbsp; S9 Walking</div>
   </div>
-  <div class="knee">● Joint #2 — R Knee</div>
+  <div class="knee">&#9679; Joint #2 — R Knee</div>
 </div>
 <div class="timer-bar">
   <div class="timer-track"><div class="timer-fill" id="fill"></div></div>
   <div class="timer-txt" id="timerTxt">t = 0.00 s</div>
 </div>
 
-<div class="grid-outer">
-  <div class="grid" id="grid"></div>
-</div>
+<div class="models-wrap" id="modelsWrap"></div>
 
 <script>
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 const MODELS = [
   'MHFormer FT','TCPFormer FT','PoseMamba FT',
   'VideoPose3D FT','MotionAGFormer FT','KTPFormer FT','D3DP FT',
@@ -98,63 +83,56 @@ const MCOL = {
   'D3DP FT':           '#38bdf8',
 };
 const METRICS = [
-  {key:'speed_rms',           label:'Speed RMS',      unit:'m/s'},
-  {key:'active_torque_mean',  label:'Active Torque',  unit:'Nm'},
-  {key:'passive_torque_mean', label:'Passive Torque', unit:'Nm'},
-  {key:'activation_mean',     label:'Muscle Activ.',  unit:''},
-  {key:'excitation_mean',     label:'Neural Excit.',  unit:''},
-];
-const SKEL_EDGES = [
-  [0,1],[1,2],[2,3],[0,4],[4,5],[5,6],
-  [0,7],[7,8],[8,9],[9,10],
-  [8,11],[11,12],[12,13],[8,14],[14,15],[15,16],
+  {key:'speed_rms',           label:'Speed RMS',     unit:'m/s'},
+  {key:'active_torque_mean',  label:'Active Torque', unit:'Nm'},
+  {key:'passive_torque_mean', label:'Passive Torq.', unit:'Nm'},
+  {key:'activation_mean',     label:'Muscle Activ.', unit:''},
+  {key:'excitation_mean',     label:'Neural Excit.', unit:''},
 ];
 const R_KNEE = 2;
 
-// ─── Geometry ─────────────────────────────────────────────────────────────────
-const FPS    = DATA.meta.fps;
-const N      = DATA.meta.n_frames;
-const MAX_S  = 8;              // seconds to display
-const AN     = Math.min(N, Math.floor(MAX_S * FPS));
+// ─── Geometry / timing ────────────────────────────────────────────────────────
+const FPS   = DATA.meta.fps;
+const N     = DATA.meta.n_frames;
+const MAX_S = 8;
+const AN    = Math.min(N, Math.floor(MAX_S * FPS));
 
-// Pre-flatten projection matrices
 const PROJ_F = PROJ.map(p => new Float32Array(p.flat ? p.flat() : [].concat(...p)));
+SKEL_GEO.head = SKULL_GEO;  // inject skull mesh
 
-// Pre-project 2D skeleton positions for all AN frames
-const PT2D = [];
+// ─── Crop: bounding box of projected keypoints in screen space (0–1000 × 0–1002) ─
+let sMinX=1e9, sMaxX=-1e9, sMinY=1e9, sMaxY=-1e9;
 for (let fi = 0; fi < AN; fi++) {
   const P = PROJ_F[fi];
-  PT2D.push(DATA.kp3[fi].map(([x,y,z]) => {
-    const wx=x, wy=z, wz=y;
-    const w = P[8]*wx + P[9]*wy + P[10]*wz + P[11];
-    return [(P[0]*wx+P[1]*wy+P[2]*wz+P[3])/w,
-            (P[4]*wx+P[5]*wy+P[6]*wz+P[7])/w];
-  }));
+  for (const kp of DATA.kp3[fi]) {
+    const wx=kp[0], wy=kp[2], wz=kp[1];
+    const w = P[8]*wx+P[9]*wy+P[10]*wz+P[11];
+    if (w <= 0) continue;
+    const sx = (P[0]*wx+P[1]*wy+P[2]*wz+P[3])/w;
+    const sy = (P[4]*wx+P[5]*wy+P[6]*wz+P[7])/w;
+    if(sx<sMinX)sMinX=sx; if(sx>sMaxX)sMaxX=sx;
+    if(sy<sMinY)sMinY=sy; if(sy>sMaxY)sMaxY=sy;
+  }
 }
+const PAD_BONE = 65; // extra margin for bone mesh extent beyond joint centres
+const CROP_S = {
+  x: Math.max(0,       sMinX - PAD_BONE),
+  y: Math.max(0,       sMinY - PAD_BONE),
+  w: Math.min(1000, sMaxX + PAD_BONE) - Math.max(0, sMinX - PAD_BONE),
+  h: Math.min(1002, sMaxY + PAD_BONE) - Math.max(0, sMinY - PAD_BONE),
+};
+CROP_S.w = Math.min(CROP_S.w, 1000 - CROP_S.x);
+CROP_S.h = Math.min(CROP_S.h, 1002 - CROP_S.y);
 
-// Bounding box for stable skeleton framing
-let bx0=1e9,bx1=-1e9,by0=1e9,by1=-1e9;
-for (let fi=0;fi<AN;fi++) for (const [x,y] of PT2D[fi]) {
-  if(x<bx0)bx0=x; if(x>bx1)bx1=x;
-  if(y<by0)by0=y; if(y>by1)by1=y;
-}
-const bxR = bx1-bx0||1, byR = by1-by0||1;
-
-// Cell canvas dimensions
-const CW   = 140;
-const VH   = 79;   // video / figure area (≈16:9)
-const SPK_H = 47;
-const GAP   = 3;
-const CH    = VH + GAP + SPK_H;
-const FP    = 5;   // figure padding (inside video area)
-const SP    = 4;   // sparkline padding
-
-function figPt(pt) {
-  return [
-    FP + (pt[0]-bx0)/bxR * (CW - 2*FP),
-    FP + (pt[1]-by0)/byR * (VH - 2*FP),
-  ];
-}
+// Output canvas sizes (video + SKEL)
+const OFF_W = 120;
+const OFF_H = Math.max(100, Math.min(240, Math.round(OFF_W * CROP_S.h / CROP_S.w)));
+const CSX   = OFF_W / CROP_S.w;  // screen→canvas scale x
+const CSY   = OFF_H / CROP_S.h;  // screen→canvas scale y
+// Sparkline canvas
+const SPK_W = 110;
+const SPK_H = OFF_H;
+const SP    = 4;  // sparkline padding
 
 // ─── Timeseries ───────────────────────────────────────────────────────────────
 const SERIES = {}, RANGES = {};
@@ -176,200 +154,315 @@ for (const m of MODELS) {
   }
 }
 
-// ─── Heat colour: cool teal → white-hot red ────────────────────────────────
+// ─── Heat colour: cool teal → white-hot red ───────────────────────────────────
 function heat(t) {
   t = Math.max(0, Math.min(1, t));
-  const r = Math.round(40  + 215*t);
-  const g = Math.round(140 * (1-t*0.9));
-  const b = Math.round(120 * (1-t));
-  return `rgb(${r},${Math.max(0,g)},${Math.max(0,b)})`;
+  return `rgb(${Math.round(40+215*t)},${Math.max(0,Math.round(140*(1-t*0.9)))},${Math.max(0,Math.round(120*(1-t)))})`;
 }
 
-// ─── Build DOM ─────────────────────────────────────────────────────────────
-const gridEl = document.getElementById('grid');
-gridEl.style.gridTemplateColumns = `92px repeat(${MODELS.length},${CW}px)`;
+// ─── Build DOM ────────────────────────────────────────────────────────────────
+const wrap    = document.getElementById('modelsWrap');
+const VID_CVS = {}, SPK_CVS = {};
+for (const mt of METRICS) { VID_CVS[mt.key] = {}; SPK_CVS[mt.key] = {}; }
 
-// Header row
-const corner = document.createElement('div');
-corner.className = 'corner';
-gridEl.appendChild(corner);
 for (const m of MODELS) {
-  const h = document.createElement('div');
-  h.className = 'model-hdr';
-  const dot = document.createElement('div');
-  dot.className = 'dot'; dot.style.background = MCOL[m];
-  const nm = document.createElement('div');
-  nm.className = 'name'; nm.textContent = m; nm.style.color = MCOL[m];
-  h.appendChild(dot); h.appendChild(nm);
-  gridEl.appendChild(h);
-}
+  const sec = document.createElement('div');
+  sec.className = 'model-section';
 
-// Data rows
-const CVASES = {};
-for (const mt of METRICS) {
-  CVASES[mt.key] = {};
+  const hdr = document.createElement('div');
+  hdr.className = 'model-hdr';
+  const dot = document.createElement('span');
+  dot.className = 'model-dot';
+  dot.style.background = MCOL[m];
+  const nm = document.createElement('span');
+  nm.className = 'model-name';
+  nm.textContent = m;
+  nm.style.color = MCOL[m];
+  hdr.appendChild(dot); hdr.appendChild(nm);
+  sec.appendChild(hdr);
 
-  const lbl = document.createElement('div');
-  lbl.className = 'metric-lbl';
-  lbl.innerHTML = `${mt.label}${mt.unit?`<span class="unit">${mt.unit}</span>`:''}`;
-  gridEl.appendChild(lbl);
+  const panels = document.createElement('div');
+  panels.className = 'metric-panels';
 
-  for (const m of MODELS) {
-    const wrap = document.createElement('div');
-    wrap.className = 'cell';
-    const cv = document.createElement('canvas');
-    cv.width = CW; cv.height = CH;
-    wrap.appendChild(cv);
-    gridEl.appendChild(wrap);
-    CVASES[mt.key][m] = cv;
+  for (const mt of METRICS) {
+    const panel = document.createElement('div');
+    panel.className = 'mpanel';
+
+    const row = document.createElement('div');
+    row.className = 'mpanel-row';
+
+    const vidCv = document.createElement('canvas');
+    vidCv.width = OFF_W; vidCv.height = OFF_H;
+    VID_CVS[mt.key][m] = vidCv;
+
+    const spkCv = document.createElement('canvas');
+    spkCv.width = SPK_W; spkCv.height = SPK_H;
+    SPK_CVS[mt.key][m] = spkCv;
+
+    row.appendChild(vidCv); row.appendChild(spkCv);
+    panel.appendChild(row);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'mpanel-label';
+    lbl.textContent = mt.label + (mt.unit ? ' ('+mt.unit+')' : '');
+    panel.appendChild(lbl);
+
+    panels.appendChild(panel);
   }
+  sec.appendChild(panels);
+  wrap.appendChild(sec);
 }
 
-// ─── Pre-bake sparkline backgrounds ─────────────────────────────────────────
+// ─── Pre-bake sparkline backgrounds (zero-cost blit each frame) ───────────────
 const SPK_BG = {};
 (function bakeSparklines(){
   const tmp = document.createElement('canvas');
-  tmp.width = CW; tmp.height = SPK_H;
+  tmp.width = SPK_W; tmp.height = SPK_H;
   const tc = tmp.getContext('2d');
   for (const mt of METRICS) {
     for (const m of MODELS) {
       const k = m+'|'+mt.key;
-      tc.clearRect(0,0,CW,SPK_H);
-      tc.fillStyle = '#060c1a';
-      tc.fillRect(0,0,CW,SPK_H);
-
+      tc.clearRect(0,0,SPK_W,SPK_H);
+      tc.fillStyle = '#060c1a'; tc.fillRect(0,0,SPK_W,SPK_H);
       const arr=SERIES[k], rng=RANGES[k];
       if (arr && rng) {
-        const sW=CW-2*SP, sH=SPK_H-2*SP;
-        const range=rng.max-rng.min||1e-9;
-        const col=MCOL[m];
-
-        // Area under curve
+        const sW=SPK_W-2*SP, sH=SPK_H-2*SP, range=rng.max-rng.min||1e-9, col=MCOL[m];
+        // Area fill
         tc.beginPath();
-        let started=false, lastX=SP;
+        let started=false, lx=SP;
         for (let i=0;i<AN;i++) {
           const v=arr[i]; if(!isFinite(v)){started=false;continue;}
-          const x=SP+(i/(AN-1))*sW;
-          const y=SP+sH-((v-rng.min)/range)*sH;
-          if(!started){tc.moveTo(x,SP+sH);tc.lineTo(x,y);started=true;}else tc.lineTo(x,y);
-          lastX=x;
+          const x=SP+(i/(AN-1))*sW, y=SP+sH-((v-rng.min)/range)*sH;
+          if(!started){tc.moveTo(x,SP+sH);tc.lineTo(x,y);started=true;}
+          else tc.lineTo(x,y);
+          lx=x;
         }
-        if(started){tc.lineTo(lastX,SP+sH);tc.closePath();
-          tc.fillStyle=col+'26';tc.fill();}
-
+        if(started){tc.lineTo(lx,SP+sH);tc.closePath();tc.fillStyle=col+'26';tc.fill();}
         // Line
-        tc.strokeStyle=col; tc.lineWidth=1.5;
-        tc.beginPath(); started=false;
+        tc.strokeStyle=col; tc.lineWidth=1.5; tc.beginPath(); started=false;
         for (let i=0;i<AN;i++) {
           const v=arr[i]; if(!isFinite(v)){started=false;continue;}
-          const x=SP+(i/(AN-1))*sW;
-          const y=SP+sH-((v-rng.min)/range)*sH;
-          if(!started){tc.moveTo(x,y);started=true;}else tc.lineTo(x,y);
+          const x=SP+(i/(AN-1))*sW, y=SP+sH-((v-rng.min)/range)*sH;
+          if(!started){tc.moveTo(x,y);started=true;} else tc.lineTo(x,y);
         }
         tc.stroke();
       }
-      SPK_BG[k] = tc.getImageData(0,0,CW,SPK_H);
+      SPK_BG[k] = tc.getImageData(0,0,SPK_W,SPK_H);
     }
   }
 })();
 
-// ─── Shared offscreen: video frame + neutral skeleton ────────────────────────
+// ─── Shared offscreen: cropped video + full 3D SKEL mesh ─────────────────────
 const OFF = document.createElement('canvas');
-OFF.width = CW; OFF.height = VH;
+OFF.width = OFF_W; OFF.height = OFF_H;
 const OFC = OFF.getContext('2d');
 
-function drawNeutralSkel(ctx, kps) {
-  // Edges in dark teal
-  ctx.save();
-  ctx.strokeStyle='rgba(30,130,160,0.55)'; ctx.lineWidth=0.9;
-  for(const[a,b]of SKEL_EDGES){
-    ctx.beginPath();ctx.moveTo(kps[a][0],kps[a][1]);ctx.lineTo(kps[b][0],kps[b][1]);ctx.stroke();
+// ─── Quaternion math (same as gt_frozen_joint.html) ──────────────────────────
+function qFromUnitVecs(ax,ay,az,bx,by,bz){
+  const dot=ax*bx+ay*by+az*bz;
+  if(dot>0.9999) return [0,0,0,1];
+  if(dot<-0.9999){
+    let px=1,py=0,pz=0; if(Math.abs(ax)>0.9){px=0;py=1;}
+    let cx=ay*pz-az*py,cy=az*px-ax*pz,cz=ax*py-ay*px;
+    const cl=Math.sqrt(cx*cx+cy*cy+cz*cz); cx/=cl;cy/=cl;cz/=cl; return [cx,cy,cz,0];
   }
-  // Joints (muted)
-  ctx.fillStyle='rgba(56,180,210,0.45)';
-  for(let j=0;j<17;j++){
-    if(j===R_KNEE)continue;
-    ctx.beginPath();ctx.arc(kps[j][0],kps[j][1],2,0,Math.PI*2);ctx.fill();
+  const cx=ay*bz-az*by,cy=az*bx-ax*bz,cz=ax*by-ay*bx; return [cx,cy,cz,1+dot];
+}
+function qNorm(q){
+  const l=Math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);
+  return [q[0]/l,q[1]/l,q[2]/l,q[3]/l];
+}
+function qRot(q,vx,vy,vz){
+  const [qx,qy,qz,qw]=q;
+  const tx=2*(qy*vz-qz*vy),ty=2*(qz*vx-qx*vz),tz=2*(qx*vy-qy*vx);
+  return [vx+qw*tx+qy*tz-qz*ty, vy+qw*ty+qz*tx-qx*tz, vz+qw*tz+qx*ty-qy*tx];
+}
+function kp3tj(fi,j){ const p=DATA.kp3[fi][j]; return [p[0],p[2],p[1]]; }
+
+// ─── Bone configuration (identical to gt_frozen_joint.html) ──────────────────
+const BONE_CONFIG = {
+  pelvis:      {ps:0,  ds:11, ph:0,  dh:7,  hj:0 },
+  femur_r:     {ps:1,  ds:2,  ph:1,  dh:2,  hj:1 },
+  tibia_r:     {ps:2,  ds:3,  ph:2,  dh:3,  hj:2 },
+  talus_r:     {ps:3,  ds:4,  ph:3,  dh:3,  hj:3 },
+  calcn_r:     {ps:4,  ds:5,  ph:3,  dh:3,  hj:3 },
+  toes_r:      {ps:5,  ds:5,  ph:3,  dh:3,  hj:3 },
+  femur_l:     {ps:6,  ds:7,  ph:4,  dh:5,  hj:4 },
+  tibia_l:     {ps:7,  ds:8,  ph:5,  dh:6,  hj:5 },
+  talus_l:     {ps:8,  ds:9,  ph:6,  dh:6,  hj:6 },
+  calcn_l:     {ps:9,  ds:10, ph:6,  dh:6,  hj:6 },
+  toes_l:      {ps:10, ds:10, ph:6,  dh:6,  hj:6 },
+  lumbar_body: {ps:0,  ds:11, ph:0,  dh:7,  hj:7 },
+  thorax:      {ps:11, ds:12, ph:7,  dh:8,  hj:7 },
+  head:        {ps:12, ds:13, ph:8,  dh:10, hj:8 },
+  scapula_r:   {ps:12, ds:14, ph:8,  dh:14, hj:14},
+  humerus_r:   {ps:15, ds:16, ph:14, dh:15, hj:14},
+  ulna_r:      {ps:16, ds:18, ph:15, dh:16, hj:15},
+  radius_r:    {ps:17, ds:18, ph:15, dh:16, hj:15},
+  hand_r:      {ps:18, ds:18, ph:16, dh:16, hj:16},
+  scapula_l:   {ps:12, ds:19, ph:8,  dh:11, hj:11},
+  humerus_l:   {ps:20, ds:21, ph:11, dh:12, hj:11},
+  ulna_l:      {ps:21, ds:23, ph:12, dh:13, hj:12},
+  radius_l:    {ps:22, ds:23, ph:12, dh:13, hj:12},
+  hand_l:      {ps:23, ds:23, ph:13, dh:13, hj:13},
+};
+
+// ─── Video crop (computed after metadata loads) ───────────────────────────────
+let VCROP = null;
+const vid = document.getElementById('vid');
+vid.addEventListener('loadedmetadata', () => {
+  const vw=vid.videoWidth, vh=vid.videoHeight;
+  const cx=Math.max(0,CROP_S.x/1000*vw), cy=Math.max(0,CROP_S.y/1002*vh);
+  VCROP = {
+    x: cx, y: cy,
+    w: Math.min(CROP_S.w/1000*vw, vw-cx),
+    h: Math.min(CROP_S.h/1002*vh, vh-cy),
+  };
+});
+vid.addEventListener('canplay', () => { vid.play().catch(()=>{}); });
+
+// Canvas position of right knee joint (updated each shared render)
+let kneeCanX = OFF_W*0.5, kneeCanY = OFF_H*0.6;
+
+// ─── Render shared offscreen: cropped video + neutral 3D SKEL ────────────────
+function renderShared(fi) {
+  OFC.clearRect(0, 0, OFF_W, OFF_H);
+
+  // 1. Cropped video background
+  if (VCROP && vid.readyState >= 2) {
+    OFC.drawImage(vid, VCROP.x, VCROP.y, VCROP.w, VCROP.h, 0, 0, OFF_W, OFF_H);
+  } else {
+    OFC.fillStyle = '#040810'; OFC.fillRect(0, 0, OFF_W, OFF_H);
   }
-  ctx.restore();
+
+  // 2. Full 3D SKEL mesh (neutral colour, depth-sorted)
+  const P = PROJ_F[fi];
+  const tris = [];
+
+  for (const [boneName, geo] of Object.entries(SKEL_GEO)) {
+    const cfg = BONE_CONFIG[boneName]; if (!cfg) continue;
+    const [px,py,pz] = kp3tj(fi, cfg.ph);
+    const rp = SKEL_REST_JS[cfg.ps], rd = SKEL_REST_JS[cfg.ds];
+    const [lx,ly,lz] = kp3tj(fi, cfg.dh);
+    let fdx=rd[0]-rp[0], fdy=rd[1]-rp[1], fdz=rd[2]-rp[2];
+    let tdx=lx-px,       tdy=ly-py,       tdz=lz-pz;
+    const fl=Math.sqrt(fdx*fdx+fdy*fdy+fdz*fdz);
+    const tl=Math.sqrt(tdx*tdx+tdy*tdy+tdz*tdz);
+    let q=[0,0,0,1];
+    if (fl>1 && tl>1)
+      q = qNorm(qFromUnitVecs(fdx/fl,fdy/fl,fdz/fl, tdx/tl,tdy/tl,tdz/tl));
+
+    const verts=geo.verts, nV=verts.length;
+    const p2d=new Float32Array(nV*2), dep=new Float32Array(nV);
+    for (let vi=0; vi<nV; vi++) {
+      const [vx,vy,vz]=verts[vi];
+      const [wx,wy,wz]=qRot(q,vx,vy,vz);
+      const worldX=px+wx, worldY=py+wy, worldZ=pz+wz;
+      const w_=P[8]*worldX+P[9]*worldY+P[10]*worldZ+P[11];
+      const sx_=(P[0]*worldX+P[1]*worldY+P[2]*worldZ+P[3])/w_;
+      const sy_=(P[4]*worldX+P[5]*worldY+P[6]*worldZ+P[7])/w_;
+      p2d[vi*2]   = (sx_ - CROP_S.x) * CSX;
+      p2d[vi*2+1] = (sy_ - CROP_S.y) * CSY;
+      dep[vi] = w_;
+    }
+
+    const isSkull = boneName === 'head';
+    for (const [i0,i1,i2] of geo.faces) {
+      const x0=p2d[i0*2],y0=p2d[i0*2+1];
+      const x1=p2d[i1*2],y1=p2d[i1*2+1];
+      const x2=p2d[i2*2],y2=p2d[i2*2+1];
+      if (Math.max(x0,x1,x2) < -4 || Math.min(x0,x1,x2) > OFF_W+4 ||
+          Math.max(y0,y1,y2) < -4 || Math.min(y0,y1,y2) > OFF_H+4) continue;
+      tris.push({x0,y0,x1,y1,x2,y2, depth:(dep[i0]+dep[i1]+dep[i2])/3, isSkull});
+    }
+  }
+
+  tris.sort((a,b) => b.depth - a.depth);
+  for (const t of tris) {
+    OFC.beginPath(); OFC.moveTo(t.x0,t.y0); OFC.lineTo(t.x1,t.y1); OFC.lineTo(t.x2,t.y2); OFC.closePath();
+    OFC.fillStyle = '#0f3a52'; OFC.fill();
+  }
+  for (const t of tris) {
+    OFC.beginPath(); OFC.moveTo(t.x0,t.y0); OFC.lineTo(t.x1,t.y1); OFC.lineTo(t.x2,t.y2); OFC.closePath();
+    OFC.strokeStyle = t.isSkull ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.2)';
+    OFC.lineWidth   = t.isSkull ? 0.5 : 0.35;
+    OFC.stroke();
+  }
+
+  // 3. Compute knee canvas position for per-cell glow
+  const kp=DATA.kp3[fi][R_KNEE];
+  const [kwx,kwy,kwz]=[kp[0],kp[2],kp[1]];
+  const kw_=P[8]*kwx+P[9]*kwy+P[10]*kwz+P[11];
+  kneeCanX = ((P[0]*kwx+P[1]*kwy+P[2]*kwz+P[3])/kw_ - CROP_S.x) * CSX;
+  kneeCanY = ((P[4]*kwx+P[5]*kwy+P[6]*kwz+P[7])/kw_ - CROP_S.y) * CSY;
 }
 
-// ─── Animation ───────────────────────────────────────────────────────────────
-const vid      = document.getElementById('vid');
-const fillEl   = document.getElementById('fill');
-const timerEl  = document.getElementById('timerTxt');
-let lastFi     = -1;
+// ─── Animation ────────────────────────────────────────────────────────────────
+const fillEl  = document.getElementById('fill');
+const timerEl = document.getElementById('timerTxt');
+let lastFi    = -1;
 
 function loop() {
   requestAnimationFrame(loop);
-
-  // Clamp to first MAX_S seconds, then loop
-  if (vid.currentTime >= MAX_S) { try{vid.currentTime=0;}catch(_){} }
+  if (vid.currentTime >= MAX_S) { try { vid.currentTime = 0; } catch(_){} }
   if (vid.readyState < 2) return;
 
   const fi = Math.min(AN-1, Math.max(0, Math.round(vid.currentTime * FPS)));
   if (fi === lastFi) return;
   lastFi = fi;
 
-  // ── Shared offscreen: video frame + neutral skeleton ──
-  OFC.drawImage(vid, 0, 0, CW, VH);
-  const kps = PT2D[fi].map(figPt);
-  drawNeutralSkel(OFC, kps);
+  // Render shared: video + neutral SKEL (once per frame for all 35 cells)
+  renderShared(fi);
 
-  // ── Per-cell rendering ──
+  // Per-cell: blit shared + knee glow + sparkline
   for (const mt of METRICS) {
     for (const m of MODELS) {
-      const cv = CVASES[mt.key][m];
-      const ctx = cv.getContext('2d');
+      const vidCv = VID_CVS[mt.key][m];
+      const spkCv = SPK_CVS[mt.key][m];
+      const vctx  = vidCv.getContext('2d');
+      const sctx  = spkCv.getContext('2d');
 
-      // Video + neutral skeleton
-      ctx.drawImage(OFF, 0, 0);
+      // Blit shared video+SKEL
+      vctx.drawImage(OFF, 0, 0);
 
-      // Right knee heatmap dot + glow
+      // Right-knee heatmap glow (model- and metric-specific value)
       const k = m+'|'+mt.key;
       const arr=SERIES[k], rng=RANGES[k];
       if (arr && rng && isFinite(arr[fi])) {
-        const t=(rng.max-rng.min<1e-9)?0.5:(arr[fi]-rng.min)/(rng.max-rng.min);
-        const col=heat(t);
-        const [kx,ky]=kps[R_KNEE];
-        // Glow ring
-        const grd=ctx.createRadialGradient(kx,ky,2,kx,ky,11);
-        grd.addColorStop(0,col+'cc');grd.addColorStop(1,col+'00');
-        ctx.fillStyle=grd;
-        ctx.beginPath();ctx.arc(kx,ky,11,0,Math.PI*2);ctx.fill();
+        const t  = (rng.max-rng.min < 1e-9) ? 0.5 : (arr[fi]-rng.min)/(rng.max-rng.min);
+        const col = heat(t);
+        const grd = vctx.createRadialGradient(kneeCanX,kneeCanY,2, kneeCanX,kneeCanY,12);
+        grd.addColorStop(0, col+'cc'); grd.addColorStop(1, col+'00');
+        vctx.fillStyle = grd;
+        vctx.beginPath(); vctx.arc(kneeCanX,kneeCanY,12,0,Math.PI*2); vctx.fill();
         // Core dot
-        ctx.fillStyle=col;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.2;
-        ctx.beginPath();ctx.arc(kx,ky,4.5,0,Math.PI*2);ctx.fill();ctx.stroke();
+        vctx.fillStyle = col;
+        vctx.strokeStyle = 'rgba(255,255,255,.85)';
+        vctx.lineWidth = 1.2;
+        vctx.beginPath(); vctx.arc(kneeCanX,kneeCanY,4,0,Math.PI*2); vctx.fill(); vctx.stroke();
       }
 
-      // Sparkline background (pre-baked)
-      const sy = VH+GAP;
-      const bg=SPK_BG[k];
-      if(bg) ctx.putImageData(bg,0,sy);
+      // Sparkline (pre-baked background)
+      const bg = SPK_BG[k];
+      if (bg) sctx.putImageData(bg, 0, 0);
 
-      // Animated dot on sparkline
-      if(arr&&rng&&isFinite(arr[fi])){
-        const sW=CW-2*SP, sH=SPK_H-2*SP;
-        const range=rng.max-rng.min||1e-9;
-        const cx=SP+(fi/(AN-1))*sW;
-        const cy=sy+SP+sH-((arr[fi]-rng.min)/range)*sH;
-        // Cursor line
-        ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(cx,sy+SP);ctx.lineTo(cx,sy+SP+sH);ctx.stroke();
-        // Dot
-        ctx.fillStyle='#fff';ctx.strokeStyle=MCOL[m];ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.arc(cx,cy,3.2,0,Math.PI*2);ctx.fill();ctx.stroke();
+      // Animated cursor + dot
+      if (arr && rng && isFinite(arr[fi])) {
+        const sW=SPK_W-2*SP, sH=SPK_H-2*SP, range=rng.max-rng.min||1e-9;
+        const cx = SP+(fi/(AN-1))*sW;
+        const cy = SP+sH-((arr[fi]-rng.min)/range)*sH;
+        sctx.strokeStyle='rgba(255,255,255,.18)'; sctx.lineWidth=1;
+        sctx.beginPath(); sctx.moveTo(cx,SP); sctx.lineTo(cx,SP+sH); sctx.stroke();
+        sctx.fillStyle='#fff'; sctx.strokeStyle=MCOL[m]; sctx.lineWidth=1.5;
+        sctx.beginPath(); sctx.arc(cx,cy,3,0,Math.PI*2); sctx.fill(); sctx.stroke();
       }
     }
   }
 
-  // Timer bar
-  const pct=(fi/(AN-1)*100).toFixed(0);
-  fillEl.style.width=pct+'%';
-  timerEl.textContent=`t = ${(fi/FPS).toFixed(2)} s  ·  frame ${fi+1}/${AN}`;
+  fillEl.style.width  = (fi/(AN-1)*100).toFixed(1)+'%';
+  timerEl.textContent = 't = '+(fi/FPS).toFixed(2)+' s  ·  frame '+(fi+1)+'/'+AN;
 }
 
-vid.addEventListener('canplay', () => { vid.play().catch(()=>{}); });
 requestAnimationFrame(loop);
 </script>
 </body>
