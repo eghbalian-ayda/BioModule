@@ -74,7 +74,7 @@ without reconstructing the aligned database from scratch, download
 `processed_all.zip` from the GitHub Release instead:
 
 ```bash
-wget https://github.com/eghbalian-ayda/BioModule/releases/download/v1.0-data/processed_all.zip
+wget https://github.com/UTSA-VIRLab/BioModule/releases/download/v1.0-data/processed_all.zip
 unzip processed_all.zip          # → processed_all/processed_all/{S1,...}/
 ```
 

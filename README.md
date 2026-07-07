@@ -191,7 +191,7 @@ If you want to train or evaluate without rebuilding everything from source,
 download `processed_all.zip` from the GitHub Release:
 
 ```bash
-wget https://github.com/eghbalian-ayda/BioModule/releases/download/v1.0-data/processed_all.zip
+wget https://github.com/UTSA-VIRLab/BioModule/releases/download/v1.0-data/processed_all.zip
 unzip processed_all.zip   # → processed_all/processed_all/{S1,S5,S6,S7,S8,S9,S11}/
 ```
 
