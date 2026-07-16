@@ -1,0 +1,90 @@
+\begin{table*}[t]
+\centering
+\caption{%
+  Mean absolute error of biomechanical attributes under the fine-tuned protocol (100 epochs),
+  evaluated on Human3.6M subjects S9 and S11.
+  Ground-truth 3D poses provide the upper-bound input condition, while all other rows use 3D poses estimated by upstream pose models.
+  \textbf{Bold}: best; \underline{underline}: second best (among estimated-pose rows).}
+\label{tab:ft100_results}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+
+% --- SUB-TABLE 1: KINEMATIC & KINETIC ---
+\begin{tabular}{l ccc ccccccc}
+\toprule
+& \multicolumn{3}{c}{\textsc{Kinematic}}
+& \multicolumn{7}{c}{\textsc{Kinetic}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-11}
+\textbf{3D Pose / Model}
+& Coord.  & Speed   & Accel.
+& Act.T.  & Pass.T. & Ideal T. & Inst.P. & Inst.P.$_r$ & GRF   & Seat R. \\
+\midrule
+H36M GT
+  & 0.228 & 0.193 & 1.240 & 9.529 & 5.452 & 4.420 & 3.516 & 7.235 & 28.900 & 21.700 \\
+\midrule
+
+MHFormer
+  & 0.274  & 0.305  & 1.843  & 10.664  & 5.466  & 5.610  & 4.513  & 8.897  & 31.222  & 25.870 \\
+
+TCPFormer
+  & \textbf{0.262}  & \textbf{0.290}  & \textbf{1.735}  & 10.608  & 5.474  & 5.588  & 4.462  & 10.345  & 31.857  & 26.751 \\
+
+PoseMamba
+  & 0.271  & 0.305  & 1.828  & 10.661  & 5.476  & 5.632  & 4.487  & 9.346  & 31.172  & 25.261 \\
+
+VideoPose3D
+  & 0.275  & 0.310  & 1.872  & 10.700  & 5.467  & 5.657  & 4.526  & 9.046  & 31.459  & 25.774 \\
+
+MotionAGFormer
+  & \underline{0.264}  & \underline{0.290}  & \underline{1.745}  & 10.550  & 5.465  & 5.520  & 4.464  & 10.117  & 31.546  & \underline{24.218} \\
+
+KTPFormer
+  & 0.267  & 0.297  & 1.824  & \textbf{10.460}  & \underline{5.452}  & \textbf{5.409}  & \textbf{4.434}  & \underline{8.855}  & \textbf{30.247}  & 26.433 \\
+
+D3DP
+  & 0.264  & 0.298  & 1.827  & \underline{10.508}  & \textbf{5.450}  & \underline{5.482}  & \underline{4.455}  & \textbf{8.852}  & \underline{30.902}  & \textbf{23.037} \\
+
+\bottomrule
+\end{tabular}
+
+\vspace{12pt}
+
+% --- SUB-TABLE 2: NEUROMUSCULAR & BINARY ---
+\begin{tabular}{l cccccc c}
+\toprule
+& \multicolumn{6}{c}{\textsc{Neuromuscular}}
+& \textsc{Binary} \\
+\cmidrule(lr){2-7} \cmidrule(lr){8-8}
+\textbf{3D Pose / Model}
+& Act.Sig. & Exc.Sig. & N.Act.T. & Ang.Sc. & Vel.Sc. & MaxJT.
+& Touch \\
+\midrule
+H36M GT
+  & 0.058 & 0.056 & 0.057 & 0.054 & 0.117 & 2.049 & 67.5\% \\
+\midrule
+
+MHFormer
+  & 0.069  & 0.065  & 0.064  & 0.070  & 0.168  & 4.491  & 67.0\% \\
+
+TCPFormer
+  & 0.070  & 0.066  & 0.064  & 0.069  & \textbf{0.164}  & 5.295  & 65.6\% \\
+
+PoseMamba
+  & 0.070  & 0.067  & 0.064  & 0.071  & 0.168  & 4.570  & 66.7\% \\
+
+VideoPose3D
+  & 0.070  & 0.066  & 0.064  & 0.071  & 0.169  & 6.667  & 66.9\% \\
+
+MotionAGFormer
+  & 0.070  & 0.066  & 0.064  & 0.070  & \underline{0.165}  & \underline{3.824}  & 66.5\% \\
+
+KTPFormer
+  & \textbf{0.068}  & \textbf{0.064}  & \textbf{0.063}  & \underline{0.068}  & 0.165  & \textbf{3.411}  & \textbf{68.2\%} \\
+
+D3DP
+  & \underline{0.068}  & \underline{0.065}  & \underline{0.063}  & \textbf{0.068}  & 0.166  & 4.305  & \underline{67.5\%} \\
+
+\bottomrule
+\end{tabular}
+
+\end{table*}
